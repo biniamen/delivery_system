@@ -1,0 +1,193 @@
+:root {
+  color-scheme: light;
+  --color-ink: #102a43;
+  --color-ink-soft: #486581;
+  --color-brand: #0f7b7e;
+  --color-brand-deep: #075e62;
+  --color-accent: #e69a2d;
+  --color-canvas: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-line: #d9e2ec;
+  --color-success: #16794b;
+  --color-danger: #b42318;
+  --color-warning: #9a6700;
+  --shadow-sm: 0 1px 3px rgb(16 42 67 / 8%), 0 1px 2px rgb(16 42 67 / 6%);
+  --shadow-lg: 0 18px 45px rgb(16 42 67 / 14%);
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --content-max: 1240px;
+  font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  min-height: 100%;
+  background: var(--color-canvas);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid rgb(15 123 126 / 32%);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Leaflet creates marker nodes outside Angular's emulated style boundary. */
+.driver-pin-host {
+  background: transparent;
+  border: 0;
+}
+
+.driver-pin {
+  position: relative;
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border: 4px solid #fff;
+  border-radius: 50% 50% 50% 12px;
+  background: var(--color-brand);
+  box-shadow: 0 9px 18px rgb(16 42 67 / 28%);
+  transform: rotate(-45deg);
+}
+
+.driver-pin span {
+  width: 12px;
+  height: 12px;
+  border: 3px solid #fff;
+  border-radius: 50%;
+}
+
+.driver-pin--recent { background: var(--color-accent); }
+.driver-pin--stale { background: #8997a5; }
+
+.button {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand);
+  color: #fff;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--color-brand-deep);
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.button--secondary {
+  border-color: var(--color-line);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background: #edf2f7;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field label {
+  color: var(--color-ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.field input,
+.field select {
+  min-height: 46px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #bcccdc;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--color-ink);
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgb(15 123 126 / 12%);
+  outline: none;
+}
+
+.field-error,
+.error-banner {
+  color: var(--color-danger);
+  font-size: 0.875rem;
+}
+
+.error-banner {
+  padding: 12px 14px;
+  border: 1px solid #f7c5c0;
+  border-radius: var(--radius-sm);
+  background: #fff1f0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

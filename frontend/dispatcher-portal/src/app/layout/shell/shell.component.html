@@ -1,0 +1,29 @@
+<div class="shell">
+  <header class="topbar">
+    <a class="brand" routerLink="/orders" aria-label="Creavers Dispatch home">
+      <span class="brand__mark" aria-hidden="true">C</span>
+      <span>
+        <strong>Creavers</strong>
+        <small>Dispatch control</small>
+      </span>
+    </a>
+
+    <nav class="topbar__nav" aria-label="Primary navigation">
+      <a routerLink="/orders" routerLinkActive="is-active">Order queue</a>
+      <a routerLink="/drivers" routerLinkActive="is-active">Live drivers</a>
+    </nav>
+
+    <div class="profile">
+      <span class="profile__avatar" aria-hidden="true">{{ auth.user()?.displayName?.charAt(0) ?? 'D' }}</span>
+      <span class="profile__copy">
+        <strong>{{ auth.user()?.displayName }}</strong>
+        <small>{{ auth.user()?.role }}</small>
+      </span>
+      <button class="signout" type="button" (click)="logout()">Sign out</button>
+    </div>
+  </header>
+
+  <main class="main-content" id="main-content">
+    <router-outlet />
+  </main>
+</div>

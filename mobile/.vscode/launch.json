@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Creavers Mobile — Web Preview",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "deviceId": "chrome",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--web-hostname=localhost",
+        "--web-port=8080",
+        "--dart-define=API_ORIGIN=http://127.0.0.1:5080"
+      ]
+    },
+    {
+      "name": "Creavers Mobile — Android Emulator",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "toolArgs": [
+        "--dart-define=API_ORIGIN=http://10.0.2.2:5080"
+      ]
+    }
+  ]
+}

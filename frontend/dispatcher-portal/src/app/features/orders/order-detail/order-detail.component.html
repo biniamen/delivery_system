@@ -1,0 +1,132 @@
+<a class="back-link" routerLink="/orders"><span aria-hidden="true">←</span> Back to order queue</a>
+
+@if (loading()) {
+  <app-loading-indicator label="Loading order details…" />
+} @else if (errorMessage() && !order()) {
+  <section class="load-error">
+    <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+    <button class="button button--secondary" type="button" (click)="load()">Try again</button>
+  </section>
+} @else if (order(); as currentOrder) {
+  <section class="detail-heading">
+    <div>
+      <p class="eyebrow">Order record</p>
+      <div class="detail-heading__title">
+        <h1>{{ currentOrder.orderNumber }}</h1>
+        <app-status-badge [status]="currentOrder.status" />
+      </div>
+      <p>Placed {{ currentOrder.createdAtUtc | date:'EEEE, MMMM d, y · h:mm a' }}</p>
+    </div>
+    <button class="button button--secondary" type="button" (click)="load()">Refresh order</button>
+  </section>
+
+  @if (errorMessage()) {
+    <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+  }
+  @if (successMessage()) {
+    <div class="success-banner" role="status">{{ successMessage() }}</div>
+  }
+
+  <div class="detail-grid">
+    <div class="detail-main">
+      <section class="card" aria-labelledby="items-title">
+        <header class="card__header">
+          <div>
+            <p class="eyebrow">Basket</p>
+            <h2 id="items-title">Order items</h2>
+          </div>
+          <span>{{ currentOrder.lines.length }} {{ currentOrder.lines.length === 1 ? 'item' : 'items' }}</span>
+        </header>
+
+        <div class="line-items">
+          @for (line of currentOrder.lines; track line.productId) {
+            <article class="line-item">
+              <div class="line-item__image" aria-hidden="true">{{ line.productName.charAt(0) }}</div>
+              <div class="line-item__name">
+                <strong>{{ line.productName }}</strong>
+                <span>{{ line.unit }}</span>
+              </div>
+              <span class="line-item__quantity">× {{ line.quantity }}</span>
+              <span>{{ line.unitPrice | number:'1.2-2' }} ETB</span>
+              <strong>{{ line.lineTotal | number:'1.2-2' }} ETB</strong>
+            </article>
+          }
+        </div>
+
+        <dl class="totals">
+          <div><dt>Subtotal</dt><dd>{{ currentOrder.subtotal | number:'1.2-2' }} ETB</dd></div>
+          <div><dt>Delivery fee</dt><dd>{{ currentOrder.deliveryFee | number:'1.2-2' }} ETB</dd></div>
+          <div class="totals__grand"><dt>Total</dt><dd>{{ currentOrder.total | number:'1.2-2' }} ETB</dd></div>
+        </dl>
+      </section>
+
+      <section class="card" aria-labelledby="timeline-title">
+        <header class="card__header">
+          <div>
+            <p class="eyebrow">Audit trail</p>
+            <h2 id="timeline-title">Delivery timeline</h2>
+          </div>
+        </header>
+
+        <ol class="timeline">
+          @for (entry of currentOrder.statusHistory; track entry.changedAtUtc) {
+            <li>
+              <span class="timeline__marker" aria-hidden="true"></span>
+              <div>
+                <strong>{{ entry.status === 'PickedUp' ? 'Picked up' : entry.status }}</strong>
+                <span>{{ entry.changedAtUtc | date:'MMM d, y · h:mm a' }}</span>
+                @if (entry.note) { <p>{{ entry.note }}</p> }
+              </div>
+            </li>
+          }
+        </ol>
+      </section>
+    </div>
+
+    <aside class="detail-aside">
+      <section class="card card--accent" aria-labelledby="assignment-title">
+        <p class="eyebrow">Dispatch</p>
+        <h2 id="assignment-title">Driver assignment</h2>
+
+        @if (canAssign(currentOrder)) {
+          <form [formGroup]="assignmentForm" (ngSubmit)="assign()">
+            <div class="field">
+              <label for="driver">Available driver</label>
+              <select id="driver" formControlName="driverId">
+                <option value="" disabled>Select a driver</option>
+                @for (driver of drivers(); track driver.id) {
+                  <option [value]="driver.id">{{ driver.displayName }}</option>
+                }
+              </select>
+              @if (assignmentForm.controls.driverId.touched && assignmentForm.controls.driverId.invalid) {
+                <span class="field-error">Select a driver before saving.</span>
+              }
+            </div>
+            <button class="button" type="submit" [disabled]="assigning()">
+              {{ assigning() ? 'Saving…' : currentOrder.assignedDriverId ? 'Update assignment' : 'Assign driver' }}
+            </button>
+          </form>
+          <p class="helper">Reassignment is allowed only before the driver accepts the order.</p>
+        } @else {
+          <div class="assigned-driver">
+            <span aria-hidden="true">{{ selectedDriverName(currentOrder.assignedDriverId).charAt(0) }}</span>
+            <div><small>Assigned driver</small><strong>{{ selectedDriverName(currentOrder.assignedDriverId) }}</strong></div>
+          </div>
+          <p class="helper">Assignment is locked after driver acceptance to protect the audit trail.</p>
+        }
+      </section>
+
+      <section class="card" aria-labelledby="customer-title">
+        <p class="eyebrow">Customer</p>
+        <h2 id="customer-title">Delivery details</h2>
+        <dl class="customer-details">
+          <div><dt>Contact</dt><dd>{{ currentOrder.contactName }}</dd></div>
+          <div><dt>Phone</dt><dd><a [href]="'tel:' + currentOrder.phoneNumber">{{ currentOrder.phoneNumber }}</a></dd></div>
+          <div><dt>Address</dt><dd>{{ currentOrder.deliveryAddress }}</dd></div>
+          <div><dt>Payment</dt><dd>{{ currentOrder.paymentMethod === 'DemoCash' ? 'Demo cash' : 'Demo card' }}</dd></div>
+        </dl>
+      </section>
+    </aside>
+  </div>
+}
+

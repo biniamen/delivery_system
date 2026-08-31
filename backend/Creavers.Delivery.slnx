@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="src/Creavers.Delivery.Domain/Creavers.Delivery.Domain.csproj" />
+  <Project Path="src/Creavers.Delivery.Application/Creavers.Delivery.Application.csproj" />
+  <Project Path="src/Creavers.Delivery.Infrastructure/Creavers.Delivery.Infrastructure.csproj" />
+  <Project Path="src/Creavers.Delivery.Api/Creavers.Delivery.Api.csproj" />
+  <Project Path="tests/Creavers.Delivery.UnitTests/Creavers.Delivery.UnitTests.csproj" />
+</Solution>
+

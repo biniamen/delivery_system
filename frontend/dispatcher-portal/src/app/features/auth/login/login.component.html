@@ -1,0 +1,55 @@
+<main class="login-page">
+  <section class="story-panel" aria-labelledby="story-title">
+    <a class="story-panel__brand" href="/" aria-label="Creavers home">
+      <span aria-hidden="true">C</span>
+      Creavers
+    </a>
+
+    <div class="story-panel__copy">
+      <p class="eyebrow">Dispatch control</p>
+      <h1 id="story-title">Every order.<br><em>One clear journey.</em></h1>
+      <p>Track supermarket orders from customer confirmation through assignment and final delivery.</p>
+    </div>
+
+    <div class="journey" aria-label="Delivery workflow">
+      <span>New</span><i aria-hidden="true"></i><span>Assigned</span><i aria-hidden="true"></i><span>Delivered</span>
+    </div>
+  </section>
+
+  <section class="login-panel" aria-labelledby="login-title">
+    <div class="login-card">
+      <p class="eyebrow">Dispatcher portal</p>
+      <h2 id="login-title">Welcome back</h2>
+      <p class="login-card__intro">Sign in with your approved dispatcher account.</p>
+
+      @if (errorMessage()) {
+        <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <div class="field">
+          <label for="email">Email address</label>
+          <input id="email" type="email" formControlName="email" autocomplete="username" placeholder="dispatcher@example.com">
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="field-error">Enter a valid email address.</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" formControlName="password" autocomplete="current-password" placeholder="Your password">
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <span class="field-error">Password must contain at least 8 characters.</span>
+          }
+        </div>
+
+        <button class="button" type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Signing in…' : 'Sign in to dispatch' }}
+        </button>
+      </form>
+
+      <p class="demo-note"><strong>Prototype environment.</strong> No live payment or production customer data is used.</p>
+    </div>
+  </section>
+</main>
+

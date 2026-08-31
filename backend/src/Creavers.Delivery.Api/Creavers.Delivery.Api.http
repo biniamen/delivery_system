@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:5080
+@token = replace-after-login
+
+### Liveness
+GET {{baseUrl}}/health/live
+
+### Sign in as the dispatcher
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "dispatcher@demo.creavers.local",
+  "password": "{{$dotenv DISPATCHER_DEMO_PASSWORD}}"
+}
+
+### Read the dispatcher queue
+GET {{baseUrl}}/api/v1/orders
+Authorization: Bearer {{token}}
+

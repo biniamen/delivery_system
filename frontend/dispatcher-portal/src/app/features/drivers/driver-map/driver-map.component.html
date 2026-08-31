@@ -1,0 +1,94 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Fleet visibility</p>
+    <h1>Live drivers</h1>
+    <p>Current GPS positions update every five seconds while each driver is sharing.</p>
+  </div>
+  <div class="page-heading__actions">
+    @if (lastUpdated()) {
+      <span>
+        @if (refreshing()) { Updating… } @else { Updated {{ lastUpdated() | date:'shortTime' }} }
+      </span>
+    }
+    <button class="button button--secondary" type="button" (click)="load()" [disabled]="loading() || refreshing()">
+      Refresh
+    </button>
+  </div>
+</section>
+
+<section class="metrics" aria-label="Driver location summary">
+  <article>
+    <span class="metric-dot metric-dot--live" aria-hidden="true"></span>
+    <div><strong>{{ liveCount() }}</strong><small>Live now</small></div>
+  </article>
+  <article>
+    <span class="metric-dot metric-dot--mapped" aria-hidden="true"></span>
+    <div><strong>{{ locatedCount() }}</strong><small>On map</small></div>
+  </article>
+  <article>
+    <span class="metric-dot metric-dot--fleet" aria-hidden="true"></span>
+    <div><strong>{{ drivers().length }}</strong><small>Active drivers</small></div>
+  </article>
+</section>
+
+<section class="tracker-card">
+  <div class="map-shell">
+    <div #map class="map" aria-label="Live driver location map"></div>
+    <div class="map-legend" aria-label="Map legend">
+      <span><i class="legend-dot legend-dot--live"></i>Live</span>
+      <span><i class="legend-dot legend-dot--recent"></i>Recent</span>
+      <span><i class="legend-dot legend-dot--stale"></i>Offline</span>
+    </div>
+  </div>
+
+  <aside class="roster" aria-labelledby="roster-title">
+    <header>
+      <div>
+        <p class="eyebrow">Team</p>
+        <h2 id="roster-title">Driver status</h2>
+      </div>
+      <span class="polling"><i></i>Auto</span>
+    </header>
+
+    @if (errorMessage()) {
+      <div class="roster-state">
+        <p class="error-banner" role="alert">{{ errorMessage() }}</p>
+        <button class="button button--secondary" type="button" (click)="load()">Try again</button>
+      </div>
+    } @else if (loading()) {
+      <app-loading-indicator label="Locating drivers…" />
+    } @else {
+      <div class="driver-list">
+        @for (driver of drivers(); track driver.driverId) {
+          <button class="driver-row" type="button" (click)="focus(driver)" [disabled]="!hasPosition(driver)">
+            <span class="driver-avatar">{{ driver.displayName.charAt(0) }}</span>
+            <span class="driver-copy">
+              <strong>{{ driver.displayName }}</strong>
+              @if (driver.receivedAtUtc) {
+                <small>
+                  {{ driver.receivedAtUtc | date:'shortTime' }}
+                  @if (speedKph(driver) !== null) { · {{ speedKph(driver) | number:'1.0-0' }} km/h }
+                </small>
+              } @else {
+                <small>Not sharing</small>
+              }
+            </span>
+            <span class="freshness freshness--{{ driver.freshness.toLowerCase() }}">
+              {{ freshnessLabel(driver.freshness) }}
+            </span>
+          </button>
+        } @empty {
+          <div class="roster-state">
+            <strong>No active drivers</strong>
+            <p>Driver accounts will appear here automatically.</p>
+          </div>
+        }
+      </div>
+    }
+  </aside>
+</section>
+
+<p class="privacy-note">
+  <span aria-hidden="true">●</span>
+  Positions are visible only while drivers explicitly share from the foreground mobile app.
+</p>

@@ -1,0 +1,47 @@
+.badge {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: #edf2f7;
+  color: #486581;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentcolor;
+}
+
+.badge--new {
+  background: #fff4df;
+  color: #9a6700;
+}
+
+.badge--assigned {
+  background: #e8f4f4;
+  color: #075e62;
+}
+
+.badge--accepted,
+.badge--pickedup {
+  background: #ebf2ff;
+  color: #2457a6;
+}
+
+.badge--delivered {
+  background: #e8f7ef;
+  color: #16794b;
+}
+
+.badge--cancelled {
+  background: #fff1f0;
+  color: #b42318;
+}
+

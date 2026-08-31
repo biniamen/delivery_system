@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+.pnpm-store
+.vscode
+**/bin
+**/obj
+**/node_modules
+**/dist
+**/.angular
+TestResults
+coverage
+tmp
+*.log
+

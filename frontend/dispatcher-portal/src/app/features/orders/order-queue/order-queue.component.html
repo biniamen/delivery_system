@@ -1,0 +1,90 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Live operations</p>
+    <h1>Order queue</h1>
+    <p>Review incoming orders, assign a driver, and monitor each delivery milestone.</p>
+  </div>
+  <div class="page-heading__actions">
+    @if (lastUpdated()) {
+      <span>Updated {{ lastUpdated() | date:'shortTime' }}</span>
+    }
+    <button class="button button--secondary" type="button" (click)="load()" [disabled]="loading() || refreshing()">
+      {{ refreshing() ? 'Refreshing…' : 'Refresh queue' }}
+    </button>
+  </div>
+</section>
+
+<section class="metrics" aria-label="Order queue summary">
+  <article>
+    <span class="metric__accent metric__accent--amber" aria-hidden="true"></span>
+    <div><small>New orders</small><strong>{{ newOrderCount() }}</strong></div>
+  </article>
+  <article>
+    <span class="metric__accent metric__accent--teal" aria-hidden="true"></span>
+    <div><small>Active deliveries</small><strong>{{ activeOrderCount() }}</strong></div>
+  </article>
+  <article>
+    <span class="metric__accent metric__accent--green" aria-hidden="true"></span>
+    <div><small>Delivered in view</small><strong>{{ deliveredOrderCount() }}</strong></div>
+  </article>
+</section>
+
+<section class="queue-card" aria-labelledby="queue-title">
+  <header class="queue-card__header">
+    <div>
+      <h2 id="queue-title">Current orders</h2>
+      <p>{{ orders().length }} {{ orders().length === 1 ? 'order' : 'orders' }} in this view</p>
+    </div>
+    <div class="field filter">
+      <label for="status-filter">Filter by status</label>
+      <select id="status-filter" [value]="selectedStatus()" (change)="changeStatus($any($event.target).value)">
+        @for (status of statuses; track status) {
+          <option [value]="status">{{ statusLabel(status) }}</option>
+        }
+      </select>
+    </div>
+  </header>
+
+  @if (errorMessage()) {
+    <div class="queue-error">
+      <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+      <button class="button button--secondary" type="button" (click)="load()">Try again</button>
+    </div>
+  } @else if (loading()) {
+    <app-loading-indicator label="Loading the order queue…" />
+  } @else if (orders().length === 0) {
+    <app-empty-state
+      title="The queue is clear"
+      message="No orders match this status. Refresh the queue or choose another filter."
+      actionLabel="Show all orders"
+      (action)="changeStatus('')"
+    />
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Order</th>
+            <th scope="col">Customer</th>
+            <th scope="col">Placed</th>
+            <th scope="col">Total</th>
+            <th scope="col">Status</th>
+            <th scope="col"><span class="sr-only">Open</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (order of orders(); track order.id) {
+            <tr>
+              <td><a class="order-link" [routerLink]="['/orders', order.id]">{{ order.orderNumber }}</a></td>
+              <td>{{ order.contactName }}</td>
+              <td>{{ order.createdAtUtc | date:'MMM d, h:mm a' }}</td>
+              <td><strong>{{ order.total | number:'1.2-2' }} ETB</strong></td>
+              <td><app-status-badge [status]="order.status" /></td>
+              <td><a class="open-link" [routerLink]="['/orders', order.id]" [attr.aria-label]="'Open ' + order.orderNumber">View <span aria-hidden="true">→</span></a></td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</section>

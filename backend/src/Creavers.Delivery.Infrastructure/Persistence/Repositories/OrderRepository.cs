@@ -1,0 +1,41 @@
+using Creavers.Delivery.Application.Repositories;
+using Creavers.Delivery.Domain.Entities;
+using Creavers.Delivery.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
+
+namespace Creavers.Delivery.Infrastructure.Persistence.Repositories;
+
+public sealed class OrderRepository(DeliveryDbContext dbContext) : IOrderRepository
+{
+    public Task AddAsync(Order order, CancellationToken cancellationToken) =>
+        dbContext.Orders.AddAsync(order, cancellationToken).AsTask();
+
+    public Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        QueryWithDetails().SingleOrDefaultAsync(order => order.Id == id, cancellationToken);
+
+    public Task<Order?> GetByIdempotencyKeyAsync(
+        Guid customerId,
+        string idempotencyKey,
+        CancellationToken cancellationToken) =>
+        QueryWithDetails().SingleOrDefaultAsync(
+            order => order.CustomerId == customerId && order.IdempotencyKey == idempotencyKey,
+            cancellationToken);
+
+    public async Task<IReadOnlyList<Order>> ListAsync(
+        OrderStatus? status,
+        Guid? driverId,
+        CancellationToken cancellationToken)
+    {
+        IQueryable<Order> query = dbContext.Orders.AsNoTracking();
+        if (status.HasValue) query = query.Where(order => order.Status == status.Value);
+        if (driverId.HasValue) query = query.Where(order => order.AssignedDriverId == driverId.Value);
+
+        return await query.OrderByDescending(order => order.CreatedAtUtc).ToListAsync(cancellationToken);
+    }
+
+    private IQueryable<Order> QueryWithDetails() => dbContext.Orders
+        .AsSplitQuery()
+        .Include(order => order.Lines)
+        .Include(order => order.StatusHistory)
+        .Include(order => order.Assignments);
+}
