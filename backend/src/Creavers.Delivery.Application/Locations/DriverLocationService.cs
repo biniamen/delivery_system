@@ -9,6 +9,7 @@ namespace Creavers.Delivery.Application.Locations;
 public sealed class DriverLocationService(
     IDriverLocationRepository locations,
     IUserRepository users,
+    IOrderRepository orders,
     IUnitOfWork unitOfWork,
     IClock clock) : IDriverLocationService
 {
@@ -63,7 +64,7 @@ public sealed class DriverLocationService(
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
-        return Map(driver, location, now);
+        return Map(driver, location, now, []);
     }
 
     public async Task<IReadOnlyList<DriverLocationResponse>> ListDriversAsync(CancellationToken cancellationToken)
@@ -71,10 +72,19 @@ public sealed class DriverLocationService(
         var drivers = await users.GetActiveByRoleAsync(UserRole.Driver, cancellationToken);
         var latest = await locations.ListAsync(drivers.Select(driver => driver.Id).ToArray(), cancellationToken);
         var byDriver = latest.ToDictionary(location => location.DriverId);
+        var workloads = await orders.ListActiveByDriversAsync(drivers.Select(driver => driver.Id).ToArray(), cancellationToken);
+        var workloadByDriver = workloads
+            .Where(order => order.AssignedDriverId.HasValue)
+            .GroupBy(order => order.AssignedDriverId!.Value)
+            .ToDictionary(group => group.Key, group => group.ToList());
         var now = clock.UtcNow;
 
         return drivers
-            .Select(driver => Map(driver, byDriver.GetValueOrDefault(driver.Id), now))
+            .Select(driver => Map(
+                driver,
+                byDriver.GetValueOrDefault(driver.Id),
+                now,
+                workloadByDriver.GetValueOrDefault(driver.Id) ?? []))
             .ToList();
     }
 
@@ -84,7 +94,7 @@ public sealed class DriverLocationService(
         if (driver is null || !driver.IsActive || driver.Role != UserRole.Driver) return null;
 
         var location = await locations.GetAsync(driverId, cancellationToken);
-        return Map(driver, location, clock.UtcNow);
+        return Map(driver, location, clock.UtcNow, []);
     }
 
     private static void Validate(UpdateDriverLocationRequest request)
@@ -106,8 +116,20 @@ public sealed class DriverLocationService(
         if (errors.Count > 0) throw new ValidationException(errors);
     }
 
-    private static DriverLocationResponse Map(User driver, DriverLocation? location, DateTimeOffset now)
+    private static DriverLocationResponse Map(
+        User driver,
+        DriverLocation? location,
+        DateTimeOffset now,
+        IReadOnlyList<Order> workload)
     {
+        var activeOrders = workload.Select(order => new DriverLoadOrderResponse(
+            order.Id,
+            order.OrderNumber,
+            order.Status,
+            order.Lines.Sum(line => line.Quantity),
+            order.Total,
+            order.DeliveryAddress)).ToList();
+        var activeItemCount = activeOrders.Sum(order => order.ItemCount);
         if (location is null)
         {
             return new DriverLocationResponse(
@@ -120,7 +142,10 @@ public sealed class DriverLocationService(
                 null,
                 null,
                 null,
-                null);
+                null,
+                activeOrders.Count,
+                activeItemCount,
+                activeOrders);
         }
 
         var age = now - location.ReceivedAtUtc;
@@ -140,6 +165,9 @@ public sealed class DriverLocationService(
             location.HeadingDegrees,
             location.SpeedMetersPerSecond,
             location.CapturedAtUtc,
-            location.ReceivedAtUtc);
+            location.ReceivedAtUtc,
+            activeOrders.Count,
+            activeItemCount,
+            activeOrders);
     }
 }

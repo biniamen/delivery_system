@@ -1,7 +1,9 @@
 import 'package:creavers_delivery_mobile/app/app_controller.dart';
 import 'package:creavers_delivery_mobile/core/config/app_config.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
+import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/catalogue_service.dart';
+import 'package:creavers_delivery_mobile/core/services/customer_onboarding_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
 import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
@@ -17,6 +19,8 @@ final class CreaversMobileApp extends StatelessWidget {
     required this.controller,
     required this.catalogueService,
     required this.customerOrderService,
+    required this.customerOnboardingService,
+    required this.addressSuggestionService,
     required this.driverOrderService,
     required this.driverLocationService,
     required this.deviceLocationService,
@@ -27,6 +31,8 @@ final class CreaversMobileApp extends StatelessWidget {
   final AppController controller;
   final CatalogueService catalogueService;
   final CustomerOrderService customerOrderService;
+  final CustomerOnboardingService customerOnboardingService;
+  final AddressSuggestionService addressSuggestionService;
   final DriverOrderService driverOrderService;
   final DriverLocationService driverLocationService;
   final DeviceLocationService deviceLocationService;
@@ -46,7 +52,11 @@ final class CreaversMobileApp extends StatelessWidget {
   Widget _home() {
     final session = controller.session;
     if (session == null) {
-      return LoginPage(controller: controller, apiOrigin: config.apiOrigin);
+      return LoginPage(
+        controller: controller,
+        apiOrigin: config.apiOrigin,
+        onboardingService: customerOnboardingService,
+      );
     }
     return switch (session.user.role) {
       UserRole.customer => CustomerHomePage(
@@ -54,6 +64,7 @@ final class CreaversMobileApp extends StatelessWidget {
         session: session,
         catalogueService: catalogueService,
         orderService: customerOrderService,
+        addressSuggestionService: addressSuggestionService,
         locationService: driverLocationService,
       ),
       UserRole.driver => DriverHomePage(
@@ -66,6 +77,12 @@ final class CreaversMobileApp extends StatelessWidget {
       UserRole.dispatcher => LoginPage(
         controller: controller,
         apiOrigin: config.apiOrigin,
+        onboardingService: customerOnboardingService,
+      ),
+      UserRole.storeAdmin => LoginPage(
+        controller: controller,
+        apiOrigin: config.apiOrigin,
+        onboardingService: customerOnboardingService,
       ),
     };
   }

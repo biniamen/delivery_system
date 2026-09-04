@@ -14,7 +14,7 @@ public sealed class CatalogueService(ICatalogueRepository catalogue) : ICatalogu
                 category.Name,
                 category.Slug,
                 category.Products
-                    .Where(product => product.IsActive)
+                    .Where(product => product.IsActive && product.StockQuantity > 0)
                     .OrderBy(product => product.Name)
                     .Select(product => new ProductResponse(
                         product.Id,
@@ -22,9 +22,9 @@ public sealed class CatalogueService(ICatalogueRepository catalogue) : ICatalogu
                         product.Description,
                         product.Unit,
                         product.Price,
-                        product.ImageUrl))
+                        product.ImageUrl,
+                        product.StockQuantity))
                     .ToList()))
             .ToList();
     }
 }
-

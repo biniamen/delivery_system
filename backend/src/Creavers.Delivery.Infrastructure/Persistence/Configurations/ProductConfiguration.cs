@@ -16,6 +16,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(product => product.Unit).HasMaxLength(50).IsRequired();
         builder.Property(product => product.Price).HasPrecision(12, 2).IsRequired();
         builder.Property(product => product.ImageUrl).HasMaxLength(500).IsRequired();
+        builder.Property(product => product.StockQuantity).IsRequired();
         builder.HasIndex(product => new { product.CategoryId, product.Name }).IsUnique();
     }
 }

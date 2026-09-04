@@ -52,4 +52,33 @@ void main() {
       expect(order.total, 200);
     },
   );
+
+  test('loads the signed-in customer order history', () async {
+    final summary = <String, Object?>{
+      'id': '00000000-0000-0000-0000-000000000300',
+      'orderNumber': 'CRV-20260904-MINE01',
+      'contactName': 'Demo Customer',
+      'status': 'Assigned',
+      'total': 340,
+      'assignedDriverId': '00000000-0000-0000-0000-000000000003',
+      'createdAtUtc': '2026-09-04T09:00:00Z',
+    };
+    final transport = FakeHttpTransport(
+      TransportResponse(statusCode: 200, body: jsonEncode(<Object?>[summary])),
+    );
+    final client = ApiClient(
+      transport,
+      config: AppConfig(apiOrigin: Uri.parse('http://127.0.0.1:5080')),
+    )..accessToken = 'customer-token';
+
+    final orders = await ApiCustomerOrderService(client).fetchMyOrders();
+
+    expect(transport.lastRequest?.method, 'GET');
+    expect(
+      transport.lastRequest?.uri.toString(),
+      'http://127.0.0.1:5080/api/v1/orders/mine',
+    );
+    expect(orders, hasLength(1));
+    expect(orders.single.status, DeliveryOrderStatus.assigned);
+  });
 }

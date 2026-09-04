@@ -38,6 +38,7 @@ public sealed class DriverLocationTests
         var service = new DriverLocationService(
             repository,
             new InMemoryUserRepository(driver),
+            new EmptyOrderRepository(),
             unitOfWork,
             new FixedClock(Now));
 
@@ -57,6 +58,7 @@ public sealed class DriverLocationTests
         var service = new DriverLocationService(
             new InMemoryLocationRepository(),
             new InMemoryUserRepository(driver),
+            new EmptyOrderRepository(),
             new RecordingUnitOfWork(),
             new FixedClock(Now));
 
@@ -114,10 +116,31 @@ public sealed class DriverLocationTests
         public Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken cancellationToken) =>
             Task.FromResult(users.SingleOrDefault(user => user.Email == normalizedEmail));
 
+        public Task<User?> GetByPhoneAsync(string normalizedPhoneNumber, CancellationToken cancellationToken) =>
+            Task.FromResult(users.SingleOrDefault(user => user.PhoneNumber == normalizedPhoneNumber));
+
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(users.SingleOrDefault(user => user.Id == id));
 
         public Task<IReadOnlyList<User>> GetActiveByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<User>>(users.Where(user => user.Role == role && user.IsActive).ToList());
+
+        public Task AddAsync(User user, CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class EmptyOrderRepository : IOrderRepository
+    {
+        public Task AddAsync(Order order, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken) => Task.FromResult<Order?>(null);
+        public Task<Order?> GetByIdempotencyKeyAsync(Guid customerId, string idempotencyKey, CancellationToken cancellationToken) =>
+            Task.FromResult<Order?>(null);
+        public Task<IReadOnlyList<Order>> ListAsync(OrderStatus? status, Guid? driverId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Order>>([]);
+
+        public Task<IReadOnlyList<Order>> ListForCustomerAsync(Guid customerId, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<Order>>([]);
+        public Task<IReadOnlyList<Order>> ListActiveByDriversAsync(
+            IReadOnlyCollection<Guid> driverIds,
+            CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Order>>([]);
     }
 }

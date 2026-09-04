@@ -9,5 +9,8 @@ public interface IOrderRepository
     Task<Order?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
     Task<Order?> GetByIdempotencyKeyAsync(Guid customerId, string idempotencyKey, CancellationToken cancellationToken);
     Task<IReadOnlyList<Order>> ListAsync(OrderStatus? status, Guid? driverId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Order>> ListForCustomerAsync(Guid customerId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Order>> ListActiveByDriversAsync(
+        IReadOnlyCollection<Guid> driverIds,
+        CancellationToken cancellationToken);
 }
-

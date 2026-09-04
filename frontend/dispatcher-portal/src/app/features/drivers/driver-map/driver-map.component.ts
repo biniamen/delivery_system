@@ -45,8 +45,14 @@ export class DriverMapComponent implements AfterViewInit, OnDestroy {
   protected readonly refreshing = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastUpdated = signal<Date | null>(null);
+  protected readonly selectedDriverId = signal<string | null>(null);
   protected readonly locatedCount = computed(() => this.drivers().filter((driver) => this.hasPosition(driver)).length);
   protected readonly liveCount = computed(() => this.drivers().filter((driver) => driver.freshness === 'Live').length);
+  protected readonly activeOrderCount = computed(() => this.drivers().reduce((total, driver) => total + driver.activeOrderCount, 0));
+  protected readonly activeItemCount = computed(() => this.drivers().reduce((total, driver) => total + driver.activeItemCount, 0));
+  protected readonly selectedDriver = computed(() =>
+    this.drivers().find((driver) => driver.driverId === this.selectedDriverId()) ?? null,
+  );
 
   ngAfterViewInit(): void {
     this.map = L.map(this.mapElement.nativeElement, {
@@ -87,6 +93,7 @@ export class DriverMapComponent implements AfterViewInit, OnDestroy {
       .subscribe({
         next: (drivers) => {
           this.drivers.set(drivers);
+          if (!this.selectedDriverId() && drivers.length > 0) this.selectedDriverId.set(drivers[0].driverId);
           this.lastUpdated.set(new Date());
           this.syncMap(drivers);
         },
@@ -99,6 +106,7 @@ export class DriverMapComponent implements AfterViewInit, OnDestroy {
   }
 
   protected focus(driver: DriverLocation): void {
+    this.selectedDriverId.set(driver.driverId);
     if (!this.map || !this.hasPosition(driver)) return;
     this.map.flyTo([driver.latitude!, driver.longitude!], 16, { duration: 0.65 });
     this.layers.get(driver.driverId)?.marker.openTooltip();

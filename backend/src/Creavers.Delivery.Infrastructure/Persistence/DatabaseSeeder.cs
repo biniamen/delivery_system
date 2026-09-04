@@ -103,24 +103,25 @@ public sealed partial class DatabaseSeeder(
                     product.Item2,
                     product.Item3,
                     product.Item4,
-                    $"/assets/products/{productSlug}.webp"), cancellationToken);
+                    $"/assets/products/{productSlug}.webp",
+                    40), cancellationToken);
             }
         }
     }
 
     private async Task SeedUsersAsync(CancellationToken cancellationToken)
     {
-        if (await dbContext.Users.AnyAsync(cancellationToken)) return;
-
         var accounts = new[]
         {
             (_accounts.CustomerEmail, _accounts.CustomerPassword, "Demo Customer", UserRole.Customer),
             (_accounts.DispatcherEmail, _accounts.DispatcherPassword, "Demo Dispatcher", UserRole.Dispatcher),
-            (_accounts.DriverEmail, _accounts.DriverPassword, "Demo Driver", UserRole.Driver)
+            (_accounts.DriverEmail, _accounts.DriverPassword, "Demo Driver", UserRole.Driver),
+            (_accounts.StoreAdminEmail, _accounts.StoreAdminPassword, "Supermarket Admin", UserRole.StoreAdmin)
         };
 
         foreach (var account in accounts)
         {
+            if (await dbContext.Users.AnyAsync(user => user.Email == account.Item1, cancellationToken)) continue;
             if (string.IsNullOrWhiteSpace(account.Item2))
             {
                 LogDemoAccountSkipped(logger, account.Item1);

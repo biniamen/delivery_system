@@ -1,6 +1,10 @@
+import 'dart:async';
+
+import 'package:creavers_delivery_mobile/core/models/address_suggestion.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
 import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
+import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_controller.dart';
@@ -11,12 +15,14 @@ final class CheckoutPage extends StatefulWidget {
     required this.cart,
     required this.session,
     required this.orderService,
+    required this.addressSuggestionService,
     super.key,
   });
 
   final CartController cart;
   final AuthSession session;
   final CustomerOrderService orderService;
+  final AddressSuggestionService addressSuggestionService;
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -25,18 +31,24 @@ final class CheckoutPage extends StatefulWidget {
 final class _CheckoutPageState extends State<CheckoutPage> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  final _phoneController = TextEditingController();
+  late final TextEditingController _phoneController;
   final _addressController = TextEditingController();
   late final String _idempotencyKey;
   PaymentMethod _paymentMethod = PaymentMethod.demoCash;
   bool _isSubmitting = false;
   String? _errorMessage;
+  Timer? _addressDebounce;
+  List<AddressSuggestion> _addressSuggestions = const <AddressSuggestion>[];
+  bool _isSearchingAddress = false;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(
       text: widget.session.user.displayName,
+    );
+    _phoneController = TextEditingController(
+      text: widget.session.user.phoneNumber ?? '',
     );
     _idempotencyKey =
         'mobile-${widget.session.user.id}-${DateTime.now().toUtc().microsecondsSinceEpoch}';
@@ -47,7 +59,40 @@ final class _CheckoutPageState extends State<CheckoutPage> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _addressDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onAddressChanged(String value) {
+    _addressDebounce?.cancel();
+    final query = value.trim();
+    if (query.length < 2) {
+      setState(() {
+        _addressSuggestions = const <AddressSuggestion>[];
+        _isSearchingAddress = false;
+      });
+      return;
+    }
+
+    setState(() => _isSearchingAddress = true);
+    _addressDebounce = Timer(const Duration(milliseconds: 280), () async {
+      final suggestions = await widget.addressSuggestionService.search(query);
+      if (!mounted || _addressController.text.trim() != query) return;
+      setState(() {
+        _addressSuggestions = suggestions;
+        _isSearchingAddress = false;
+      });
+    });
+  }
+
+  void _selectAddress(AddressSuggestion suggestion) {
+    _addressDebounce?.cancel();
+    _addressController.text = suggestion.fullAddress;
+    setState(() {
+      _addressSuggestions = const <AddressSuggestion>[];
+      _isSearchingAddress = false;
+    });
+    FocusScope.of(context).unfocus();
   }
 
   Future<void> _placeOrder() async {
@@ -146,19 +191,36 @@ final class _CheckoutPageState extends State<CheckoutPage> {
           const SizedBox(height: 14),
           TextFormField(
             controller: _addressController,
+            onChanged: _onAddressChanged,
             minLines: 2,
             maxLines: 4,
             textInputAction: TextInputAction.newline,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Delivery address',
-              hintText: 'Street, landmark and area',
+              hintText: 'Start with an area, for example Saris',
               alignLabelWithHint: true,
-              prefixIcon: Icon(Icons.location_on_outlined),
+              prefixIcon: const Icon(Icons.location_on_outlined),
+              suffixIcon: _isSearchingAddress
+                  ? const Padding(
+                      padding: EdgeInsets.all(14),
+                      child: SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : null,
             ),
             validator: (value) => value == null || value.trim().isEmpty
                 ? 'Enter a complete delivery address.'
                 : null,
           ),
+          if (_addressSuggestions.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 8),
+            _AddressSuggestions(
+              suggestions: _addressSuggestions,
+              onSelected: _selectAddress,
+            ),
+          ],
           const SizedBox(height: 24),
           Text(
             'Payment method',
@@ -236,6 +298,100 @@ final class _CheckoutProgress extends StatelessWidget {
       const Expanded(child: Divider()),
       const _ProgressStep(icon: Icons.check, label: 'Placed'),
     ],
+  );
+}
+
+final class _AddressSuggestions extends StatelessWidget {
+  const _AddressSuggestions({
+    required this.suggestions,
+    required this.onSelected,
+  });
+
+  final List<AddressSuggestion> suggestions;
+  final ValueChanged<AddressSuggestion> onSelected;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppTheme.border),
+      boxShadow: const <BoxShadow>[
+        BoxShadow(
+          color: Color(0x1414273A),
+          blurRadius: 20,
+          offset: Offset(0, 8),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 13, 16, 7),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                Icons.auto_awesome_rounded,
+                size: 16,
+                color: AppTheme.deepTeal,
+              ),
+              SizedBox(width: 7),
+              Text(
+                'Suggested locations',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+        ),
+        for (var index = 0; index < suggestions.length; index++) ...<Widget>[
+          if (index > 0) const Divider(height: 1),
+          InkWell(
+            onTap: () => onSelected(suggestions[index]),
+            borderRadius: index == suggestions.length - 1
+                ? const BorderRadius.vertical(bottom: Radius.circular(18))
+                : BorderRadius.zero,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
+              child: Row(
+                children: <Widget>[
+                  const CircleAvatar(
+                    radius: 17,
+                    backgroundColor: AppTheme.mint,
+                    child: Icon(
+                      Icons.location_on_outlined,
+                      size: 18,
+                      color: AppTheme.deepTeal,
+                    ),
+                  ),
+                  const SizedBox(width: 11),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          suggestions[index].title,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          suggestions[index].subtitle,
+                          style: const TextStyle(
+                            color: AppTheme.inkSoft,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.north_west_rounded, size: 17),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    ),
   );
 }
 

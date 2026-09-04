@@ -31,6 +31,22 @@ public sealed partial class OrderService(
         if (products.Count != requestedIds.Length)
             throw new ValidationException(new Dictionary<string, string[]> { ["lines"] = ["One or more products are unavailable."] });
 
+        foreach (var requestedLine in request.Lines)
+        {
+            var product = products[requestedLine.ProductId];
+            try
+            {
+                product.ReserveStock(requestedLine.Quantity);
+            }
+            catch (InvalidOperationException exception)
+            {
+                throw new ValidationException(new Dictionary<string, string[]>
+                {
+                    ["lines"] = [$"{product.Name}: {exception.Message}"]
+                });
+            }
+        }
+
         var lines = request.Lines.Select(line =>
         {
             var product = products[line.ProductId];
@@ -62,6 +78,14 @@ public sealed partial class OrderService(
         CancellationToken cancellationToken)
     {
         var found = await orders.ListAsync(status, driverId, cancellationToken);
+        return found.Select(MapSummary).ToList();
+    }
+
+    public async Task<IReadOnlyList<OrderSummaryResponse>> ListForCustomerAsync(
+        Guid customerId,
+        CancellationToken cancellationToken)
+    {
+        var found = await orders.ListForCustomerAsync(customerId, cancellationToken);
         return found.Select(MapSummary).ToList();
     }
 

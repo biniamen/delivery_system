@@ -1,5 +1,6 @@
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_controller.dart';
@@ -12,12 +13,14 @@ final class CartPage extends StatelessWidget {
     required this.cart,
     required this.session,
     required this.orderService,
+    required this.addressSuggestionService,
     super.key,
   });
 
   final CartController cart;
   final AuthSession session;
   final CustomerOrderService orderService;
+  final AddressSuggestionService addressSuggestionService;
 
   Future<void> _checkout(BuildContext context) async {
     final order = await Navigator.of(context).push<DeliveryOrder>(
@@ -26,6 +29,7 @@ final class CartPage extends StatelessWidget {
           cart: cart,
           session: session,
           orderService: orderService,
+          addressSuggestionService: addressSuggestionService,
         ),
       ),
     );

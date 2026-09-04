@@ -2,7 +2,7 @@
   <div>
     <p class="eyebrow">Fleet visibility</p>
     <h1>Live drivers</h1>
-    <p>Current GPS positions update every five seconds while each driver is sharing.</p>
+    <p>Monitor GPS movement, current delivery load and the orders each driver is carrying.</p>
   </div>
   <div class="page-heading__actions">
     @if (lastUpdated()) {
@@ -29,6 +29,10 @@
     <span class="metric-dot metric-dot--fleet" aria-hidden="true"></span>
     <div><strong>{{ drivers().length }}</strong><small>Active drivers</small></div>
   </article>
+  <article>
+    <span class="metric-dot metric-dot--orders" aria-hidden="true"></span>
+    <div><strong>{{ activeOrderCount() }}</strong><small>Orders in hand</small></div>
+  </article>
 </section>
 
 <section class="tracker-card">
@@ -39,6 +43,30 @@
       <span><i class="legend-dot legend-dot--recent"></i>Recent</span>
       <span><i class="legend-dot legend-dot--stale"></i>Offline</span>
     </div>
+    @if (selectedDriver(); as driver) {
+      <section class="load-panel" aria-label="Selected driver workload">
+        <header>
+          <div class="driver-avatar">{{ driver.displayName.charAt(0) }}</div>
+          <div><small>Selected driver</small><strong>{{ driver.displayName }}</strong></div>
+          <span class="freshness freshness--{{ driver.freshness.toLowerCase() }}">{{ freshnessLabel(driver.freshness) }}</span>
+        </header>
+        <div class="load-summary">
+          <span><strong>{{ driver.activeOrderCount }}</strong> orders</span>
+          <span><strong>{{ driver.activeItemCount }}</strong> items</span>
+          @if (speedKph(driver) !== null) { <span><strong>{{ speedKph(driver) | number:'1.0-0' }}</strong> km/h</span> }
+        </div>
+        <div class="load-orders">
+          @for (order of driver.activeOrders; track order.orderId) {
+            <a [href]="'/orders/' + order.orderId">
+              <span><strong>{{ order.orderNumber }}</strong><small>{{ order.deliveryAddress }}</small></span>
+              <span class="order-load">{{ order.itemCount }} items · {{ order.status }}</span>
+            </a>
+          } @empty {
+            <p>No active delivery load.</p>
+          }
+        </div>
+      </section>
+    }
   </div>
 
   <aside class="roster" aria-labelledby="roster-title">
@@ -68,6 +96,7 @@
                 <small>
                   {{ driver.receivedAtUtc | date:'shortTime' }}
                   @if (speedKph(driver) !== null) { · {{ speedKph(driver) | number:'1.0-0' }} km/h }
+                  · {{ driver.activeOrderCount }} orders / {{ driver.activeItemCount }} items
                 </small>
               } @else {
                 <small>Not sharing</small>

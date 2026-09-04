@@ -42,7 +42,6 @@ public sealed class JwtTokenIssuer(IOptions<JwtOptions> options, IClock clock) :
         return new LoginResponse(
             new JwtSecurityTokenHandler().WriteToken(token),
             expiresAt,
-            new AuthenticatedUser(user.Id, user.Email, user.DisplayName, user.Role));
+            new AuthenticatedUser(user.Id, user.Email, user.DisplayName, user.Role, user.PhoneNumber));
     }
 }
-

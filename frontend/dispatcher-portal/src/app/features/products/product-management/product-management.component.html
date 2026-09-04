@@ -1,0 +1,150 @@
+<section class="inventory-hero">
+  <div>
+    <p class="eyebrow">Supermarket operations</p>
+    <h1>Products customers<br><em>can trust.</em></h1>
+    <p>Control catalogue visibility, pricing and stock from one focused workspace.</p>
+  </div>
+  <button class="button hero-action" type="button" (click)="createNew()">
+    <span aria-hidden="true">＋</span> New product
+  </button>
+</section>
+
+<section class="inventory-metrics" aria-label="Catalogue overview">
+  <article class="metric-card metric-card--primary">
+    <span class="metric-icon">▦</span>
+    <div><small>Total catalogue</small><strong>{{ catalogue().products.length }}</strong></div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon metric-icon--green">✓</span>
+    <div><small>Available now</small><strong>{{ availableCount() }}</strong></div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon metric-icon--amber">!</span>
+    <div><small>Low stock</small><strong>{{ lowStockCount() }}</strong></div>
+  </article>
+  <article class="metric-card">
+    <span class="metric-icon metric-icon--muted">—</span>
+    <div><small>Unavailable</small><strong>{{ unavailableCount() }}</strong></div>
+  </article>
+</section>
+
+@if (errorMessage()) {
+  <div class="message message--error" role="alert">{{ errorMessage() }}</div>
+}
+@if (successMessage()) {
+  <div class="message message--success" role="status">{{ successMessage() }}</div>
+}
+
+<section class="inventory-layout">
+  <div class="catalogue-card">
+    <header class="catalogue-toolbar">
+      <div>
+        <p class="eyebrow">Catalogue</p>
+        <h2>Inventory</h2>
+      </div>
+      <label class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <span class="sr-only">Search products</span>
+        <input type="search" placeholder="Search product or category" (input)="searchQuery.set($any($event.target).value)">
+      </label>
+    </header>
+
+    <div class="filter-row" aria-label="Availability filters">
+      <button type="button" [class.is-active]="availabilityFilter() === 'all'" (click)="setFilter('all')">All</button>
+      <button type="button" [class.is-active]="availabilityFilter() === 'available'" (click)="setFilter('available')">Available</button>
+      <button type="button" [class.is-active]="availabilityFilter() === 'unavailable'" (click)="setFilter('unavailable')">Unavailable</button>
+      <span>{{ visibleProducts().length }} results</span>
+    </div>
+
+    @if (loading()) {
+      <app-loading-indicator label="Loading supermarket catalogue…" />
+    } @else {
+      <div class="product-list">
+        @for (product of visibleProducts(); track product.id) {
+          <article class="product-row" [class.product-row--selected]="selectedProductId() === product.id">
+            <div class="product-art" aria-hidden="true">{{ product.name.charAt(0) }}</div>
+            <div class="product-copy">
+              <div class="product-title">
+                <strong>{{ product.name }}</strong>
+                <span class="availability" [class.availability--off]="!product.isAvailable">
+                  {{ product.isAvailable ? 'Available' : 'Hidden' }}
+                </span>
+              </div>
+              <small>{{ product.categoryName }} · {{ product.unit }}</small>
+              <p>{{ product.description }}</p>
+            </div>
+            <div class="product-data">
+              <strong>{{ product.price | currency:'ETB ':'symbol':'1.2-2' }}</strong>
+              <span class="stock stock--{{ stockClass(product) }}">{{ product.stockQuantity }} in stock</span>
+            </div>
+            <div class="product-actions">
+              <button type="button" class="icon-button" title="Edit product" (click)="edit(product)">Edit</button>
+              <button
+                type="button"
+                class="visibility-button"
+                [class.visibility-button--off]="product.isAvailable"
+                (click)="toggleAvailability(product)">
+                {{ product.isAvailable ? 'Hide' : 'Publish' }}
+              </button>
+            </div>
+          </article>
+        } @empty {
+          <div class="empty-products"><strong>No products found</strong><p>Adjust the search or availability filter.</p></div>
+        }
+      </div>
+    }
+  </div>
+
+  <aside class="editor-card">
+    <header>
+      <span class="editor-kicker">{{ selectedProductId() ? 'Editing product' : 'New product' }}</span>
+      <h2>{{ selectedProductId() ? form.controls.name.value || 'Product details' : 'Add to catalogue' }}</h2>
+      <p>Changes become authoritative for customer ordering.</p>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate>
+      <div class="field">
+        <label for="product-name">Product name</label>
+        <input id="product-name" formControlName="name" placeholder="e.g. Fresh strawberries">
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category" formControlName="categoryId">
+          @for (category of catalogue().categories; track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field-grid">
+        <div class="field">
+          <label for="unit">Unit</label>
+          <input id="unit" formControlName="unit" placeholder="1 kg">
+        </div>
+        <div class="field">
+          <label for="price">Price (ETB)</label>
+          <input id="price" type="number" min="0" step="0.01" formControlName="price">
+        </div>
+      </div>
+      <div class="field">
+        <label for="stock">Stock quantity</label>
+        <input id="stock" type="number" min="0" step="1" formControlName="stockQuantity">
+        <small>Products with zero stock cannot be published.</small>
+      </div>
+      <div class="field">
+        <label for="description">Description</label>
+        <textarea id="description" rows="3" formControlName="description" placeholder="Short customer-facing description"></textarea>
+      </div>
+      <div class="field">
+        <label for="image-url">Image path</label>
+        <input id="image-url" formControlName="imageUrl">
+      </div>
+      <label class="availability-control">
+        <input type="checkbox" formControlName="isAvailable">
+        <span><strong>Visible to customers</strong><small>Only enable after stock and pricing are confirmed.</small></span>
+      </label>
+      <button class="button save-button" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Saving…' : selectedProductId() ? 'Save changes' : 'Create product' }}
+      </button>
+    </form>
+  </aside>
+</section>

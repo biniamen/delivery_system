@@ -126,6 +126,23 @@ final class _LiveDeliveryMapCard extends StatelessWidget {
 
   final DriverLocation? location;
 
+  String get _movementLabel {
+    final speed = location?.speedMetersPerSecond;
+    if (speed == null) return 'Speed unavailable';
+    final kilometresPerHour = speed * 3.6;
+    return kilometresPerHour < 1
+        ? 'Driver stopped'
+        : '${kilometresPerHour.round()} km/h';
+  }
+
+  String _updatedLabel(BuildContext context) {
+    final captured = location?.capturedAtUtc;
+    if (captured == null) return 'Waiting for first location update';
+    final time = MaterialLocalizations.of(context)
+        .formatTimeOfDay(TimeOfDay.fromDateTime(captured));
+    return 'Updated $time · refreshes every 5 sec';
+  }
+
   @override
   Widget build(BuildContext context) => Card(
     elevation: 0,
@@ -159,17 +176,70 @@ final class _LiveDeliveryMapCard extends StatelessWidget {
           ),
           LiveDriverMap(
             location: location,
-            height: 240,
+            height: 270,
             emptyLabel: 'Waiting for GPS',
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(6, 10, 6, 2),
-            child: Text(
-              location?.hasCoordinates == true
-                  ? '${location!.displayName} · ±${location!.accuracyMeters?.round() ?? 0} m'
-                  : 'The pin appears when your driver starts sharing.',
-              style: const TextStyle(color: AppTheme.inkSoft, fontSize: 12),
+            padding: const EdgeInsets.fromLTRB(6, 12, 6, 3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  location?.hasCoordinates == true
+                      ? location!.displayName
+                      : 'The pin appears when your driver starts sharing.',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _MapFact(icon: Icons.speed_rounded, label: _movementLabel),
+                    _MapFact(
+                      icon: Icons.gps_fixed_rounded,
+                      label: location?.accuracyMeters == null
+                          ? 'GPS accuracy pending'
+                          : '±${location!.accuracyMeters!.round()} m accuracy',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  _updatedLabel(context),
+                  style: const TextStyle(color: AppTheme.inkSoft, fontSize: 11),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+final class _MapFact extends StatelessWidget {
+  const _MapFact({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: AppTheme.mint,
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 14, color: AppTheme.deepTeal),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
           ),
         ],
       ),

@@ -44,6 +44,25 @@ public sealed class OrderTests
         Assert.Equal(2, order.StatusHistory.Count);
     }
 
+    [Fact]
+    public void ReservingProductStockUpdatesAvailabilityAtZero()
+    {
+        var product = new Product(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            "Fresh Milk",
+            "Pasteurized milk",
+            "1 litre",
+            85m,
+            "/images/milk.png",
+            2);
+
+        product.ReserveStock(2);
+
+        Assert.Equal(0, product.StockQuantity);
+        Assert.False(product.IsActive);
+    }
+
     private static Order CreateOrder(Guid customerId) => Order.Create(
         Guid.NewGuid(),
         "CRV-TEST-001",

@@ -1,7 +1,8 @@
 enum UserRole {
   customer,
   dispatcher,
-  driver;
+  driver,
+  storeAdmin;
 
   static UserRole fromJson(Object? value) {
     final normalized = value?.toString().toLowerCase();
@@ -18,6 +19,7 @@ final class AppUser {
     required this.email,
     required this.displayName,
     required this.role,
+    this.phoneNumber,
   });
 
   factory AppUser.fromJson(Map<String, Object?> json) => AppUser(
@@ -25,12 +27,14 @@ final class AppUser {
     email: json['email']! as String,
     displayName: json['displayName']! as String,
     role: UserRole.fromJson(json['role']),
+    phoneNumber: json['phoneNumber'] as String?,
   );
 
   final String id;
   final String email;
   final String displayName;
   final UserRole role;
+  final String? phoneNumber;
 }
 
 final class AuthSession {

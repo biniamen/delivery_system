@@ -1,5 +1,7 @@
 import 'package:creavers_delivery_mobile/app/app_controller.dart';
+import 'package:creavers_delivery_mobile/core/services/customer_onboarding_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
+import 'package:creavers_delivery_mobile/features/onboarding/customer_onboarding_page.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/connection_status_card.dart';
 import 'package:flutter/material.dart';
 
@@ -7,11 +9,13 @@ final class LoginPage extends StatefulWidget {
   const LoginPage({
     required this.controller,
     required this.apiOrigin,
+    this.onboardingService,
     super.key,
   });
 
   final AppController controller;
   final Uri apiOrigin;
+  final CustomerOnboardingService? onboardingService;
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -40,6 +44,19 @@ final class _LoginPageState extends State<LoginPage> {
     await widget.controller.login(
       email: _emailController.text,
       password: _passwordController.text,
+    );
+  }
+
+  Future<void> _openOnboarding() async {
+    final service = widget.onboardingService;
+    if (service == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => CustomerOnboardingPage(
+          controller: widget.controller,
+          onboardingService: service,
+        ),
+      ),
     );
   }
 
@@ -155,6 +172,14 @@ final class _LoginPageState extends State<LoginPage> {
                       widget.controller.isBusy ? 'Signing in…' : 'Sign in',
                     ),
                   ),
+                  if (widget.onboardingService != null) ...<Widget>[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _openOnboarding,
+                      icon: const Icon(Icons.phone_iphone_rounded),
+                      label: const Text('Create customer account with phone'),
+                    ),
+                  ],
                 ],
               ),
             ),

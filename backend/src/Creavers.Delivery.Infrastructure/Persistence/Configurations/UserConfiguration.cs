@@ -16,5 +16,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(user => user.DisplayName).HasMaxLength(100).IsRequired();
         builder.Property(user => user.PasswordHash).HasMaxLength(500).IsRequired();
         builder.Property(user => user.Role).HasConversion<string>().HasMaxLength(30).IsRequired();
+        builder.Property(user => user.PhoneNumber).HasMaxLength(20);
+        builder.HasIndex(user => user.PhoneNumber).IsUnique().HasFilter("\"PhoneNumber\" IS NOT NULL");
+        builder.Property(user => user.DateOfBirth).HasColumnType("date");
     }
 }

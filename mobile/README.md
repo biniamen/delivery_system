@@ -2,7 +2,7 @@
 
 One Flutter codebase for the two mobile roles in the action plan. Android and iOS are the deployment targets; the browser target provides a fast phone-sized local preview while an emulator is unavailable.
 
-- **Customer:** search/filter available products, build a basket, submit a validated order, and follow the assigned driver's pin and delivery timeline.
+- **Customer:** register by phone with the development OTP, complete a basic profile, search live inventory, choose from private Addis Ababa delivery-address suggestions, build a basket, review order history, and follow the assigned driver's pin and delivery timeline.
 - **Driver:** explicitly start foreground location sharing, inspect assigned stops and pickup checklists, and move an order through Accepted, Picked up, and Delivered.
 
 The app uses feature-first folders, typed models, service contracts, a reusable HTTP transport, centralized API errors, dependency injection through constructors, and role-based navigation. Dispatcher accounts are intentionally directed to the Angular portal.
@@ -20,6 +20,7 @@ lib/
 │   └── theme/              # Mobile design system
 ├── features/
 │   ├── auth/
+│   ├── onboarding/        # Phone, static OTP, and customer profile
 │   ├── customer/
 │   │   ├── cart/            # Basket state and review screen
 │   │   ├── checkout/        # Validated order submission
@@ -75,6 +76,10 @@ Use these local demo accounts with the password configured for the backend:
 - `driver@demo.creavers.local`
 
 For the currently running local environment, the password is `CreaversDemo!2026`.
+
+To create a new customer, choose **Create customer account**, enter an Ethiopian mobile number, and use the static development code `246810`. The next step collects the customer's full name and date of birth. This code is intentionally development-only and must be replaced with an SMS provider before production.
+
+Checkout suggestions are currently supplied by the local `AddressSuggestionService`, so development searches do not transmit typed customer addresses to a third-party geocoder. Replace that implementation with a contracted production geocoding provider when the deployment environment and privacy terms are approved.
 
 ## Verify
 

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:creavers_delivery_mobile/core/config/app_config.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/network/api_client.dart';
+import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
 import 'package:creavers_delivery_mobile/core/network/http_transport.dart';
 import 'package:creavers_delivery_mobile/core/services/authentication_service.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,6 +63,31 @@ void main() {
     expect(
       transport.lastRequest?.headers['Authorization'],
       'Bearer mobile-token',
+    );
+  });
+
+  test('401 response explains that the customer session expired', () async {
+    final transport = FakeHttpTransport(
+      const TransportResponse(statusCode: 401, body: ''),
+    );
+    final client = ApiClient(
+      transport,
+      config: AppConfig(apiOrigin: Uri.parse('http://127.0.0.1:5080')),
+    )..accessToken = 'expired-token';
+
+    final request = client.post('orders', body: const <String, Object?>{});
+
+    await expectLater(
+      request,
+      throwsA(
+        isA<ApiException>()
+            .having((error) => error.statusCode, 'statusCode', 401)
+            .having(
+              (error) => error.message,
+              'message',
+              contains('session expired'),
+            ),
+      ),
     );
   });
 }
