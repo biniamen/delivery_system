@@ -24,7 +24,9 @@ public sealed record DriverLoadOrderResponse(
     OrderStatus Status,
     int ItemCount,
     decimal Total,
-    string DeliveryAddress);
+    string DeliveryAddress,
+    double? DeliveryLatitude,
+    double? DeliveryLongitude);
 
 public sealed record DriverLocationResponse(
     Guid DriverId,

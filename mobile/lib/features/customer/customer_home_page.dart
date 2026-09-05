@@ -5,6 +5,8 @@ import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
 import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/catalogue_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
+import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_controller.dart';
@@ -23,6 +25,8 @@ final class CustomerHomePage extends StatefulWidget {
     required this.catalogueService,
     required this.orderService,
     required this.addressSuggestionService,
+    this.deliveryRouteService,
+    this.deviceLocationService,
     this.locationService,
     super.key,
   });
@@ -32,6 +36,8 @@ final class CustomerHomePage extends StatefulWidget {
   final CatalogueService catalogueService;
   final CustomerOrderService orderService;
   final AddressSuggestionService addressSuggestionService;
+  final DeliveryRouteService? deliveryRouteService;
+  final DeviceLocationService? deviceLocationService;
   final DriverLocationService? locationService;
 
   @override
@@ -85,6 +91,7 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
         builder: (_) => CustomerOrdersPage(
           orderService: widget.orderService,
           locationService: widget.locationService,
+          deliveryRouteService: widget.deliveryRouteService,
         ),
       ),
     );
@@ -99,6 +106,7 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
           session: widget.session,
           orderService: widget.orderService,
           addressSuggestionService: widget.addressSuggestionService,
+          deviceLocationService: widget.deviceLocationService,
         ),
       ),
     );
@@ -116,6 +124,7 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
           initialOrder: order,
           orderService: widget.orderService,
           locationService: widget.locationService,
+          deliveryRouteService: widget.deliveryRouteService,
         ),
       ),
     );

@@ -84,6 +84,21 @@
     </div>
 
     <aside class="detail-aside">
+      @if (currentOrder.deliveryLatitude !== null && currentOrder.deliveryLongitude !== null) {
+        <app-order-destination-map
+          [orderId]="currentOrder.id"
+          [latitude]="currentOrder.deliveryLatitude"
+          [longitude]="currentOrder.deliveryLongitude"
+          [address]="currentOrder.deliveryAddress"
+        />
+      } @else {
+        <section class="card destination-missing" aria-labelledby="destination-missing-title">
+          <p class="eyebrow">Drop-off point</p>
+          <h2 id="destination-missing-title">Legacy address</h2>
+          <p>This older order has a written address but no saved map pin.</p>
+        </section>
+      }
+
       <section class="card card--accent" aria-labelledby="assignment-title">
         <p class="eyebrow">Dispatch</p>
         <h2 id="assignment-title">Driver assignment</h2>
@@ -129,4 +144,3 @@
     </aside>
   </div>
 }
-

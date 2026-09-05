@@ -1,0 +1,27 @@
+<section class="destination-card" aria-labelledby="destination-title">
+  <header>
+    <div>
+      <p class="eyebrow">Drop-off point</p>
+      <h2 id="destination-title">Customer destination</h2>
+    </div>
+    <div class="map-pills">
+      @if (route(); as activeRoute) {
+        <span class="route-pill">{{ activeRoute.durationText }} · {{ activeRoute.distanceText }}</span>
+      }
+      <span class="verified-pill"><span aria-hidden="true">●</span> Exact pin</span>
+    </div>
+  </header>
+
+  <div #destinationMap class="destination-map" aria-label="Customer delivery destination map"></div>
+
+  <div class="destination-meta">
+    <div>
+      <strong>{{ address() }}</strong>
+      <span>{{ latitude() | number:'1.5-6' }}, {{ longitude() | number:'1.5-6' }}</span>
+    </div>
+    <div class="destination-actions">
+      <span>{{ provider() }}</span>
+      <a [href]="externalMapUrl" target="_blank" rel="noopener">Open map ↗</a>
+    </div>
+  </div>
+</section>

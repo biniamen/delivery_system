@@ -5,6 +5,7 @@ import 'package:creavers_delivery_mobile/core/services/address_suggestion_servic
 import 'package:creavers_delivery_mobile/core/services/catalogue_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_onboarding_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_order_service.dart';
@@ -21,6 +22,7 @@ final class CreaversMobileApp extends StatelessWidget {
     required this.customerOrderService,
     required this.customerOnboardingService,
     required this.addressSuggestionService,
+    required this.deliveryRouteService,
     required this.driverOrderService,
     required this.driverLocationService,
     required this.deviceLocationService,
@@ -33,6 +35,7 @@ final class CreaversMobileApp extends StatelessWidget {
   final CustomerOrderService customerOrderService;
   final CustomerOnboardingService customerOnboardingService;
   final AddressSuggestionService addressSuggestionService;
+  final DeliveryRouteService deliveryRouteService;
   final DriverOrderService driverOrderService;
   final DriverLocationService driverLocationService;
   final DeviceLocationService deviceLocationService;
@@ -65,7 +68,9 @@ final class CreaversMobileApp extends StatelessWidget {
         catalogueService: catalogueService,
         orderService: customerOrderService,
         addressSuggestionService: addressSuggestionService,
+        deviceLocationService: deviceLocationService,
         locationService: driverLocationService,
+        deliveryRouteService: deliveryRouteService,
       ),
       UserRole.driver => DriverHomePage(
         controller: controller,
@@ -73,6 +78,7 @@ final class CreaversMobileApp extends StatelessWidget {
         orderService: driverOrderService,
         locationService: driverLocationService,
         deviceLocationService: deviceLocationService,
+        deliveryRouteService: deliveryRouteService,
       ),
       UserRole.dispatcher => LoginPage(
         controller: controller,

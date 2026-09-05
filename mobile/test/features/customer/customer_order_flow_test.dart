@@ -73,6 +73,7 @@ void main() {
     expect(find.text('Saris Abo'), findsOneWidget);
     await tester.tap(find.text('Saris Abo'));
     await tester.pump();
+    expect(find.text('Exact delivery pin saved'), findsOneWidget);
     await tester.drag(find.byType(ListView).last, const Offset(0, -700));
     await tester.pumpAndSettle();
     final placeOrderButton = find.widgetWithText(

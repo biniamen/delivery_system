@@ -133,6 +133,12 @@ namespace Creavers.Delivery.Infrastructure.Persistence.Migrations
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
 
+                    b.Property<double?>("DeliveryLatitude")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("DeliveryLongitude")
+                        .HasColumnType("double precision");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(100)

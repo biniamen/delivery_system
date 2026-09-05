@@ -29,6 +29,8 @@ void main() {
           contactName: 'Demo Customer',
           phoneNumber: '+251911234567',
           deliveryAddress: 'Bole, Addis Ababa',
+          deliveryLatitude: 8.9981,
+          deliveryLongitude: 38.7877,
           paymentMethod: PaymentMethod.demoCash,
           lines: <CreateOrderLine>[
             CreateOrderLine(
@@ -47,6 +49,8 @@ void main() {
         'http://127.0.0.1:5080/api/v1/orders',
       );
       expect(body['paymentMethod'], 'DemoCash');
+      expect(body['deliveryLatitude'], 8.9981);
+      expect(body['deliveryLongitude'], 38.7877);
       expect((body['lines']! as List<Object?>).length, 1);
       expect(order.orderNumber, 'CRV-20260831-TEST01');
       expect(order.total, 200);

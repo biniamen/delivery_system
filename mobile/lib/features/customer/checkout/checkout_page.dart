@@ -6,8 +6,10 @@ import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
 import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
 import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_controller.dart';
+import 'package:creavers_delivery_mobile/features/customer/checkout/delivery_location_picker_page.dart';
 import 'package:flutter/material.dart';
 
 final class CheckoutPage extends StatefulWidget {
@@ -16,6 +18,7 @@ final class CheckoutPage extends StatefulWidget {
     required this.session,
     required this.orderService,
     required this.addressSuggestionService,
+    this.deviceLocationService,
     super.key,
   });
 
@@ -23,6 +26,7 @@ final class CheckoutPage extends StatefulWidget {
   final AuthSession session;
   final CustomerOrderService orderService;
   final AddressSuggestionService addressSuggestionService;
+  final DeviceLocationService? deviceLocationService;
 
   @override
   State<CheckoutPage> createState() => _CheckoutPageState();
@@ -40,6 +44,8 @@ final class _CheckoutPageState extends State<CheckoutPage> {
   Timer? _addressDebounce;
   List<AddressSuggestion> _addressSuggestions = const <AddressSuggestion>[];
   bool _isSearchingAddress = false;
+  double? _deliveryLatitude;
+  double? _deliveryLongitude;
 
   @override
   void initState() {
@@ -65,6 +71,10 @@ final class _CheckoutPageState extends State<CheckoutPage> {
 
   void _onAddressChanged(String value) {
     _addressDebounce?.cancel();
+    if (_deliveryLatitude != null || _deliveryLongitude != null) {
+      _deliveryLatitude = null;
+      _deliveryLongitude = null;
+    }
     final query = value.trim();
     if (query.length < 2) {
       setState(() {
@@ -76,23 +86,74 @@ final class _CheckoutPageState extends State<CheckoutPage> {
 
     setState(() => _isSearchingAddress = true);
     _addressDebounce = Timer(const Duration(milliseconds: 280), () async {
-      final suggestions = await widget.addressSuggestionService.search(query);
-      if (!mounted || _addressController.text.trim() != query) return;
-      setState(() {
-        _addressSuggestions = suggestions;
-        _isSearchingAddress = false;
-      });
+      try {
+        final suggestions = await widget.addressSuggestionService.search(query);
+        if (!mounted || _addressController.text.trim() != query) return;
+        setState(() {
+          _addressSuggestions = suggestions;
+          _isSearchingAddress = false;
+        });
+      } on Object {
+        if (!mounted || _addressController.text.trim() != query) return;
+        setState(() {
+          _addressSuggestions = const <AddressSuggestion>[];
+          _isSearchingAddress = false;
+        });
+      }
     });
   }
 
-  void _selectAddress(AddressSuggestion suggestion) {
+  Future<void> _selectAddress(AddressSuggestion suggestion) async {
     _addressDebounce?.cancel();
     _addressController.text = suggestion.fullAddress;
     setState(() {
       _addressSuggestions = const <AddressSuggestion>[];
-      _isSearchingAddress = false;
+      _isSearchingAddress = true;
     });
     FocusScope.of(context).unfocus();
+    try {
+      final resolved = await widget.addressSuggestionService.resolve(
+        suggestion,
+      );
+      if (!mounted) return;
+      _addressController.text = resolved.fullAddress;
+      setState(() {
+        _isSearchingAddress = false;
+        _deliveryLatitude = resolved.latitude;
+        _deliveryLongitude = resolved.longitude;
+      });
+      _formKey.currentState?.validate();
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _isSearchingAddress = false);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
+
+  Future<void> _openLocationPicker() async {
+    final selection = await Navigator.of(context)
+        .push<DeliveryLocationSelection>(
+          MaterialPageRoute<DeliveryLocationSelection>(
+            builder: (_) => DeliveryLocationPickerPage(
+              addressSuggestionService: widget.addressSuggestionService,
+              initialAddress: _addressController.text.trim(),
+              initialLatitude: _deliveryLatitude,
+              initialLongitude: _deliveryLongitude,
+              deviceLocationService: widget.deviceLocationService,
+            ),
+          ),
+        );
+    if (selection == null || !mounted) return;
+    setState(() {
+      _deliveryLatitude = selection.latitude;
+      _deliveryLongitude = selection.longitude;
+      _addressSuggestions = const <AddressSuggestion>[];
+    });
+    if (selection.formattedAddress?.trim().isNotEmpty == true) {
+      _addressController.text = selection.formattedAddress!;
+    }
+    _formKey.currentState?.validate();
   }
 
   Future<void> _placeOrder() async {
@@ -110,6 +171,8 @@ final class _CheckoutPageState extends State<CheckoutPage> {
           contactName: _nameController.text.trim(),
           phoneNumber: _phoneController.text.trim(),
           deliveryAddress: _addressController.text.trim(),
+          deliveryLatitude: _deliveryLatitude!,
+          deliveryLongitude: _deliveryLongitude!,
           paymentMethod: _paymentMethod,
           lines: widget.cart.lines
               .map(
@@ -210,9 +273,15 @@ final class _CheckoutPageState extends State<CheckoutPage> {
                     )
                   : null,
             ),
-            validator: (value) => value == null || value.trim().isEmpty
-                ? 'Enter a complete delivery address.'
-                : null,
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'Enter a complete delivery address.';
+              }
+              if (_deliveryLatitude == null || _deliveryLongitude == null) {
+                return 'Choose a recommendation or select the exact point on the map.';
+              }
+              return null;
+            },
           ),
           if (_addressSuggestions.isNotEmpty) ...<Widget>[
             const SizedBox(height: 8),
@@ -221,6 +290,12 @@ final class _CheckoutPageState extends State<CheckoutPage> {
               onSelected: _selectAddress,
             ),
           ],
+          const SizedBox(height: 10),
+          _DeliveryPinCard(
+            latitude: _deliveryLatitude,
+            longitude: _deliveryLongitude,
+            onChoose: _openLocationPicker,
+          ),
           const SizedBox(height: 24),
           Text(
             'Payment method',
@@ -391,6 +466,72 @@ final class _AddressSuggestions extends StatelessWidget {
           ),
         ],
       ],
+    ),
+  );
+}
+
+final class _DeliveryPinCard extends StatelessWidget {
+  const _DeliveryPinCard({
+    required this.latitude,
+    required this.longitude,
+    required this.onChoose,
+  });
+
+  final double? latitude;
+  final double? longitude;
+  final VoidCallback onChoose;
+
+  bool get _hasPin => latitude != null && longitude != null;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: _hasPin ? AppTheme.mint : const Color(0xFFFFF8E7),
+      borderRadius: BorderRadius.circular(17),
+      border: Border.all(
+        color: _hasPin ? const Color(0xFFB5DDD7) : const Color(0xFFF0D69C),
+      ),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        children: <Widget>[
+          CircleAvatar(
+            backgroundColor: _hasPin ? AppTheme.deepTeal : AppTheme.warmGold,
+            child: Icon(
+              _hasPin
+                  ? Icons.location_on_rounded
+                  : Icons.add_location_alt_outlined,
+              color: _hasPin ? Colors.white : AppTheme.ink,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  _hasPin
+                      ? 'Exact delivery pin saved'
+                      : 'Exact delivery pin required',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  _hasPin
+                      ? '${latitude!.toStringAsFixed(5)}, ${longitude!.toStringAsFixed(5)}'
+                      : 'Choose any destination directly from the map.',
+                  style: const TextStyle(color: AppTheme.inkSoft, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onChoose,
+            child: Text(_hasPin ? 'Change' : 'Open map'),
+          ),
+        ],
+      ),
     ),
   );
 }

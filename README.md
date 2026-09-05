@@ -11,6 +11,8 @@ A professional foundation for the reusable supermarket-delivery prototype: ASP.N
 - Catalogue endpoints and a repeatable seed of 36 realistic products in six categories.
 - Server-side stock reservation, totals, idempotent order submission, guarded status transitions, and audit history.
 - Responsive dispatcher login, live order queue, order detail, totals, delivery timeline, and driver assignment.
+- Google Maps Platform integration for Places autocomplete, forward/reverse geocoding, traffic-aware routes, distance/ETA, customer destinations, and live fleet maps, with a keyless OpenStreetMap development fallback.
+- Required customer destination pins stored as latitude/longitude, with the exact dispatcher and driver drop-off point on every new order.
 - Separate `.ts`, `.html`, and `.css` files for every Angular component, with dedicated `models`, `services`, `guards`, and `interceptors` folders.
 - Role-aware Flutter mobile app with customer basket, checkout, live order tracking, and detailed driver assignment/status workflows.
 - A complete customer → dispatcher → driver flow with automatic dispatcher queue refresh and audited delivery transitions.
@@ -71,6 +73,10 @@ $env:DemoAccounts__DispatcherPassword = '<demo-password>'
 $env:DemoAccounts__CustomerPassword = '<demo-password>'
 $env:DemoAccounts__DriverPassword = '<demo-password>'
 $env:DemoAccounts__StoreAdminPassword = '<demo-password>'
+$env:GoogleMaps__Enabled = 'true'
+$env:GoogleMaps__ServerApiKey = '<server-key>'
+$env:GoogleMaps__BrowserApiKey = '<browser-key>'
+$env:GoogleMaps__MapId = '<production-map-id>'
 dotnet run --project backend/src/Creavers.Delivery.Api
 ```
 
@@ -86,7 +92,17 @@ pnpm start
 
 The local Angular environment calls `http://localhost:5080/api/v1`.
 
-The development maps use OpenStreetMap raster tiles with visible attribution. Configure a managed/self-hosted tile URL before production traffic; do not add bulk download or offline-prefetch behavior to the public tile service.
+For the configured Windows development workspace, the complete local stack can be controlled with:
+
+```powershell
+.\scripts\start-local.ps1
+.\scripts\stop-local.ps1
+.\scripts\restart-local.ps1
+```
+
+The start/restart script rebuilds the mobile web preview, whose page shell removes stale development service workers. Use `-SkipMobileBuild` only when no mobile files changed.
+
+The default keyless development mode uses OpenStreetMap with visible attribution. Set the Google Maps environment variables to enable the full provider integration. See [Google Maps Platform setup](docs/google-maps-platform.md) for APIs, key restrictions, native setup, quotas, and validation.
 
 ## Run the mobile client
 
@@ -95,7 +111,7 @@ Install Flutter and the Android SDK, start the backend, then run the app from th
 ```powershell
 Set-Location mobile
 flutter pub get
-flutter run --dart-define=API_ORIGIN=http://10.0.2.2:5080
+flutter run --dart-define=API_ORIGIN=http://10.0.2.2:5080 --dart-define=GOOGLE_MAPS_ENABLED=true --dart-define=GOOGLE_MAPS_MAP_ID=<production-map-id>
 ```
 
 `10.0.2.2` is the Android Emulator alias for the host computer. See the [mobile README](mobile/README.md) for iOS Simulator, physical-device, test, and connection-check settings.
@@ -118,7 +134,7 @@ The repository check confirms that each Angular component has external HTML/CSS 
 
 ## Database migrations
 
-The reviewed migrations include the initial model and the store-admin/inventory/customer-onboarding extension. Development initialization applies pending migrations and then performs idempotent demo seeding. Create later migrations deliberately as the model evolves:
+The reviewed migrations include the initial model, driver locations, store-admin/inventory/customer onboarding, and order destination coordinates. Development initialization applies pending migrations and then performs idempotent demo seeding. Create later migrations deliberately as the model evolves:
 
 ```powershell
 Set-Location backend

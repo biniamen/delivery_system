@@ -31,6 +31,11 @@ public sealed partial class ApiExceptionHandler(
                 "Request conflicts with the current state",
                 exception.Message,
                 new Dictionary<string, object?>()),
+            ExternalServiceUnavailableException external => (
+                StatusCodes.Status503ServiceUnavailable,
+                $"{external.Service} is unavailable",
+                external.Message,
+                new Dictionary<string, object?>()),
             _ => (
                 StatusCodes.Status500InternalServerError,
                 "Unexpected server error",

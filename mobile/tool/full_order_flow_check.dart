@@ -50,6 +50,8 @@ Future<void> main(List<String> arguments) async {
         contactName: 'Demo Customer',
         phoneNumber: '+251911234567',
         deliveryAddress: 'Bole Atlas demo delivery stop, Addis Ababa',
+        deliveryLatitude: 8.9981,
+        deliveryLongitude: 38.7877,
         paymentMethod: PaymentMethod.demoCash,
         lines: <CreateOrderLine>[
           CreateOrderLine(productId: products[0].id, quantity: 2),
@@ -57,9 +59,16 @@ Future<void> main(List<String> arguments) async {
         ],
       ),
     );
+    if (created.deliveryLatitude != 8.9981 ||
+        created.deliveryLongitude != 38.7877) {
+      throw StateError(
+        'The API did not preserve the customer destination pin.',
+      );
+    }
     stdout.writeln(
       'customer-order=created number=${created.orderNumber} '
-      'status=${created.status.apiValue} total=${created.total.toStringAsFixed(2)}',
+      'status=${created.status.apiValue} total=${created.total.toStringAsFixed(2)} '
+      'destination=${created.deliveryLatitude},${created.deliveryLongitude}',
     );
 
     await authentication.login(
@@ -80,6 +89,10 @@ Future<void> main(List<String> arguments) async {
     final assigned = DeliveryOrder.fromJson(
       assignedResponse! as Map<String, Object?>,
     );
+    if (assigned.deliveryLatitude != created.deliveryLatitude ||
+        assigned.deliveryLongitude != created.deliveryLongitude) {
+      throw StateError('Dispatcher did not receive the saved destination pin.');
+    }
     stdout.writeln(
       'dispatcher-assignment=saved driver=$driverName '
       'status=${assigned.status.apiValue}',

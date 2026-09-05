@@ -7,6 +7,8 @@ export interface DriverLoadOrder {
   itemCount: number;
   total: number;
   deliveryAddress: string;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
 }
 
 export interface DriverLocation {

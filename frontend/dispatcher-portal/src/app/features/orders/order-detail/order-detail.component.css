@@ -257,6 +257,12 @@
   font-size: 0.75rem;
 }
 
+.destination-missing p:last-child {
+  margin: 12px 0 0;
+  color: var(--color-ink-soft);
+  font-size: 0.82rem;
+}
+
 .assigned-driver {
   display: flex;
   align-items: center;
@@ -369,4 +375,3 @@
     display: none;
   }
 }
-

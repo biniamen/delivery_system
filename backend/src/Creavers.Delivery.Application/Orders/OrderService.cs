@@ -62,6 +62,8 @@ public sealed partial class OrderService(
             request.ContactName,
             request.PhoneNumber,
             request.DeliveryAddress,
+            request.DeliveryLatitude,
+            request.DeliveryLongitude,
             request.PaymentMethod,
             DemoDeliveryFee,
             lines,
@@ -144,6 +146,9 @@ public sealed partial class OrderService(
             errors["phoneNumber"] = ["Enter a valid Ethiopian phone number, for example +251911234567."];
         if (string.IsNullOrWhiteSpace(request.DeliveryAddress) || request.DeliveryAddress.Length > 500)
             errors["deliveryAddress"] = ["Delivery address is required and must not exceed 500 characters."];
+        if (!double.IsFinite(request.DeliveryLatitude) || !double.IsFinite(request.DeliveryLongitude) ||
+            request.DeliveryLatitude is < 8.7 or > 9.3 || request.DeliveryLongitude is < 38.5 or > 39.1)
+            errors["deliveryLocation"] = ["Select a delivery point within Addis Ababa on the map."];
         if (!Enum.IsDefined(request.PaymentMethod))
             errors["paymentMethod"] = ["Select a supported demonstration payment method."];
         if (request.Lines is null || request.Lines.Count == 0)
@@ -171,6 +176,8 @@ public sealed partial class OrderService(
         order.ContactName,
         order.PhoneNumber,
         order.DeliveryAddress,
+        order.DeliveryLatitude,
+        order.DeliveryLongitude,
         order.PaymentMethod,
         order.Status,
         order.Subtotal,

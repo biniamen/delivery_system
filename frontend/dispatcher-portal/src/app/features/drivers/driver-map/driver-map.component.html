@@ -42,6 +42,7 @@
       <span><i class="legend-dot legend-dot--live"></i>Live</span>
       <span><i class="legend-dot legend-dot--recent"></i>Recent</span>
       <span><i class="legend-dot legend-dot--stale"></i>Offline</span>
+      <span class="map-provider">{{ provider() }}</span>
     </div>
     @if (selectedDriver(); as driver) {
       <section class="load-panel" aria-label="Selected driver workload">
@@ -54,6 +55,10 @@
           <span><strong>{{ driver.activeOrderCount }}</strong> orders</span>
           <span><strong>{{ driver.activeItemCount }}</strong> items</span>
           @if (speedKph(driver) !== null) { <span><strong>{{ speedKph(driver) | number:'1.0-0' }}</strong> km/h</span> }
+          @if (selectedRoute(); as route) {
+            <span><strong>{{ route.durationText }}</strong> ETA</span>
+            <span><strong>{{ route.distanceText }}</strong> remaining</span>
+          }
         </div>
         <div class="load-orders">
           @for (order of driver.activeOrders; track order.orderId) {

@@ -128,7 +128,9 @@ public sealed class DriverLocationService(
             order.Status,
             order.Lines.Sum(line => line.Quantity),
             order.Total,
-            order.DeliveryAddress)).ToList();
+            order.DeliveryAddress,
+            order.DeliveryLatitude,
+            order.DeliveryLongitude)).ToList();
         var activeItemCount = activeOrders.Sum(order => order.ItemCount);
         if (location is null)
         {

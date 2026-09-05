@@ -1,6 +1,7 @@
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
 import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/orders/order_tracking_page.dart';
@@ -13,11 +14,13 @@ final class CustomerOrdersPage extends StatefulWidget {
   const CustomerOrdersPage({
     required this.orderService,
     this.locationService,
+    this.deliveryRouteService,
     super.key,
   });
 
   final CustomerOrderService orderService;
   final DriverLocationService? locationService;
+  final DeliveryRouteService? deliveryRouteService;
 
   @override
   State<CustomerOrdersPage> createState() => _CustomerOrdersPageState();
@@ -51,6 +54,7 @@ final class _CustomerOrdersPageState extends State<CustomerOrdersPage> {
             initialOrder: order,
             orderService: widget.orderService,
             locationService: widget.locationService,
+            deliveryRouteService: widget.deliveryRouteService,
           ),
         ),
       );
