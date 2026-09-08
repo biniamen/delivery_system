@@ -4,7 +4,8 @@ final class AppConfig {
   factory AppConfig.fromEnvironment() {
     const configuredOrigin = String.fromEnvironment(
       'API_ORIGIN',
-      defaultValue: 'http://10.0.2.2:5080',
+      // defaultValue: 'http://10.0.2.2:5080',
+      defaultValue: 'http://localhost:5080',
     );
     return AppConfig(apiOrigin: Uri.parse(configuredOrigin));
   }

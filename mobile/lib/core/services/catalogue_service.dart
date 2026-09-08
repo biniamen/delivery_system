@@ -4,6 +4,8 @@ import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
 
 abstract interface class CatalogueService {
   Future<List<CatalogueCategory>> fetchCatalogue();
+
+  Future<Product> fetchProductById(String id);
 }
 
 final class ApiCatalogueService implements CatalogueService {
@@ -23,5 +25,16 @@ final class ApiCatalogueService implements CatalogueService {
         .cast<Map<String, Object?>>()
         .map(CatalogueCategory.fromJson)
         .toList(growable: false);
+  }
+
+  @override
+  Future<Product> fetchProductById(String id) async {
+    final response = await _client.get('catalogue/products/$id');
+    if (response is! Map<String, Object?>) {
+      throw const ApiException(
+        message: 'The product response was not valid.',
+      );
+    }
+    return Product.fromJson(response);
   }
 }

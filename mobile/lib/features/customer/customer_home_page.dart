@@ -9,10 +9,12 @@ import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_controller.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_page.dart';
 import 'package:creavers_delivery_mobile/features/customer/orders/order_tracking_page.dart';
+import 'package:creavers_delivery_mobile/features/customer/product_detail/product_detail_page.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/empty_state_card.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/loading_view.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/order_status_chip.dart';
 import 'package:flutter/material.dart';
+
 
 final class CustomerHomePage extends StatefulWidget {
   const CustomerHomePage({
@@ -240,7 +242,11 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
                   )
                 else
                   for (final category in visibleCategories) ...<Widget>[
-                    _CategorySection(category: category, cart: _cart),
+                    _CategorySection(
+                    category: category,
+                    cart: _cart,
+                    onProductTap: _openProductDetail,
+                    ),
                     const SizedBox(height: 24),
                   ],
               ],
@@ -351,6 +357,18 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
         )
         .where((category) => category.products.isNotEmpty)
         .toList(growable: false);
+  }
+
+  void _openProductDetail(Product product) {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => ProductDetailPage(
+          product: product,
+          cart: _cart,
+          catalogueService: widget.catalogueService,
+        ),
+      ),
+    );
   }
 }
 
@@ -572,10 +590,15 @@ final class _LatestOrderCard extends StatelessWidget {
 }
 
 final class _CategorySection extends StatelessWidget {
-  const _CategorySection({required this.category, required this.cart});
+  const _CategorySection({
+    required this.category,
+    required this.cart,
+    required this.onProductTap,
+    });
 
   final CatalogueCategory category;
   final CartController cart;
+  final ValueChanged<Product> onProductTap;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -598,7 +621,7 @@ final class _CategorySection extends StatelessWidget {
       ),
       const SizedBox(height: 11),
       for (final product in category.products) ...<Widget>[
-        _ProductCard(product: product, cart: cart),
+        _ProductCard(product: product, cart: cart, onTap: () => onProductTap(product)),
         const SizedBox(height: 10),
       ],
     ],
@@ -606,17 +629,21 @@ final class _CategorySection extends StatelessWidget {
 }
 
 final class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product, required this.cart});
+  const _ProductCard({required this.product, required this.cart, this.onTap});
 
   final Product product;
   final CartController cart;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final quantity = cart.quantityFor(product);
     return Card(
       elevation: 0,
-      child: Padding(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
           children: <Widget>[
@@ -742,6 +769,7 @@ final class _ProductCard extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }
