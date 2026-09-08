@@ -47,7 +47,8 @@ final class AppController extends ChangeNotifier {
         email: email,
         password: password,
       );
-      if (authenticated.user.role == UserRole.dispatcher) {
+      if (authenticated.user.role == UserRole.dispatcher ||
+          authenticated.user.role == UserRole.storeAdmin) {
         _authenticationService.clearSession();
         throw const ApiException(
           message: 'Dispatchers should use the web dispatcher portal.',
@@ -65,6 +66,12 @@ final class AppController extends ChangeNotifier {
       _isBusy = false;
       notifyListeners();
     }
+  }
+
+  void acceptOnboardingSession(AuthSession session) {
+    _session = session;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   void logout() {

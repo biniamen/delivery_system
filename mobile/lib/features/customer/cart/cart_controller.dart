@@ -26,10 +26,14 @@ final class CartController extends ChangeNotifier {
   double get total => isEmpty ? 0 : subtotal + deliveryFee;
 
   int quantityFor(Product product) => _lines[product.id]?.quantity ?? 0;
+  int maximumFor(Product product) => product.stockQuantity < maximumQuantity
+      ? product.stockQuantity
+      : maximumQuantity;
+  bool canAdd(Product product) => quantityFor(product) < maximumFor(product);
 
   void add(Product product) {
     final current = quantityFor(product);
-    if (current >= maximumQuantity) return;
+    if (current >= maximumFor(product)) return;
     _lines[product.id] = CartLine(product: product, quantity: current + 1);
     notifyListeners();
   }

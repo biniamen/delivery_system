@@ -3,10 +3,13 @@ import 'package:creavers_delivery_mobile/app/creavers_mobile_app.dart';
 import 'package:creavers_delivery_mobile/core/config/app_config.dart';
 import 'package:creavers_delivery_mobile/core/network/api_client.dart';
 import 'package:creavers_delivery_mobile/core/network/http_transport.dart';
+import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/authentication_service.dart';
 import 'package:creavers_delivery_mobile/core/services/backend_connection_service.dart';
 import 'package:creavers_delivery_mobile/core/services/catalogue_service.dart';
+import 'package:creavers_delivery_mobile/core/services/customer_onboarding_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_order_service.dart';
@@ -21,12 +24,19 @@ void main() {
     ApiAuthenticationService(apiClient),
     ApiBackendConnectionService(apiClient),
   );
+  const localAddressFallback = LocalAddressSuggestionService();
 
   runApp(
     CreaversMobileApp(
       controller: controller,
       catalogueService: ApiCatalogueService(apiClient),
       customerOrderService: ApiCustomerOrderService(apiClient),
+      customerOnboardingService: ApiCustomerOnboardingService(apiClient),
+      addressSuggestionService: ApiAddressSuggestionService(
+        apiClient,
+        localAddressFallback,
+      ),
+      deliveryRouteService: ApiDeliveryRouteService(apiClient),
       driverOrderService: ApiDriverOrderService(apiClient),
       driverLocationService: ApiDriverLocationService(apiClient),
       deviceLocationService: GeolocatorDeviceLocationService(),

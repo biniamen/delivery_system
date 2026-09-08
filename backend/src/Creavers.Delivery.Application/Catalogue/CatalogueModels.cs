@@ -6,11 +6,11 @@ public sealed record ProductResponse(
     string Description,
     string Unit,
     decimal Price,
-    string ImageUrl);
+    string ImageUrl,
+    int StockQuantity);
 
 public sealed record CategoryResponse(
     Guid Id,
     string Name,
     string Slug,
     IReadOnlyList<ProductResponse> Products);
-

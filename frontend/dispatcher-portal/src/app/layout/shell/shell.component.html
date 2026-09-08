@@ -1,16 +1,20 @@
 <div class="shell">
   <header class="topbar">
-    <a class="brand" routerLink="/orders" aria-label="Creavers Dispatch home">
+    <a class="brand" [routerLink]="homeUrl()" aria-label="Creavers operations home">
       <span class="brand__mark" aria-hidden="true">C</span>
       <span>
         <strong>Creavers</strong>
-        <small>Dispatch control</small>
+        <small>{{ auth.user()?.role === 'StoreAdmin' ? 'Store operations' : 'Dispatch control' }}</small>
       </span>
     </a>
 
     <nav class="topbar__nav" aria-label="Primary navigation">
-      <a routerLink="/orders" routerLinkActive="is-active">Order queue</a>
-      <a routerLink="/drivers" routerLinkActive="is-active">Live drivers</a>
+      @if (auth.user()?.role === 'Dispatcher') {
+        <a routerLink="/orders" routerLinkActive="is-active">Order queue</a>
+        <a routerLink="/drivers" routerLinkActive="is-active">Live drivers</a>
+      } @else {
+        <a routerLink="/products" routerLinkActive="is-active">Products & stock</a>
+      }
     </nav>
 
     <div class="profile">

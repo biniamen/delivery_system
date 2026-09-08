@@ -9,6 +9,8 @@ public sealed record CreateOrderRequest(
     string ContactName,
     string PhoneNumber,
     string DeliveryAddress,
+    double DeliveryLatitude,
+    double DeliveryLongitude,
     PaymentMethod PaymentMethod,
     IReadOnlyList<CreateOrderLineRequest> Lines);
 
@@ -47,6 +49,8 @@ public sealed record OrderResponse(
     string ContactName,
     string PhoneNumber,
     string DeliveryAddress,
+    double? DeliveryLatitude,
+    double? DeliveryLongitude,
     PaymentMethod PaymentMethod,
     OrderStatus Status,
     decimal Subtotal,
@@ -56,4 +60,3 @@ public sealed record OrderResponse(
     DateTimeOffset UpdatedAtUtc,
     IReadOnlyList<OrderLineResponse> Lines,
     IReadOnlyList<StatusHistoryResponse> StatusHistory);
-

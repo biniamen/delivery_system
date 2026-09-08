@@ -2,8 +2,8 @@
 
 One Flutter codebase for the two mobile roles in the action plan. Android and iOS are the deployment targets; the browser target provides a fast phone-sized local preview while an emulator is unavailable.
 
-- **Customer:** search/filter available products, build a basket, submit a validated order, and follow the assigned driver's pin and delivery timeline.
-- **Driver:** explicitly start foreground location sharing, inspect assigned stops and pickup checklists, and move an order through Accepted, Picked up, and Delivered.
+- **Customer:** register by phone with the development OTP, complete a basic profile, search live inventory, choose a Google Places recommendation or any exact Addis Ababa point, build a basket, review order history, and follow the driver's live traffic-aware route and ETA.
+- **Driver:** explicitly start foreground location sharing, inspect assigned stops, route/distance/ETA and pickup checklists, and move an order through Accepted, Picked up, and Delivered.
 
 The app uses feature-first folders, typed models, service contracts, a reusable HTTP transport, centralized API errors, dependency injection through constructors, and role-based navigation. Dispatcher accounts are intentionally directed to the Angular portal.
 
@@ -20,6 +20,7 @@ lib/
 │   └── theme/              # Mobile design system
 ├── features/
 │   ├── auth/
+│   ├── onboarding/        # Phone, static OTP, and customer profile
 │   ├── customer/
 │   │   ├── cart/            # Basket state and review screen
 │   │   ├── checkout/        # Validated order submission
@@ -47,7 +48,9 @@ Start PostgreSQL and the backend first. Then, from this directory:
 
 ```powershell
 flutter pub get
-flutter run --dart-define=API_ORIGIN=http://10.0.2.2:5080
+Copy-Item android/local.defaults.properties android/secrets.properties
+# Put the Android-restricted key in android/secrets.properties, then:
+flutter run --dart-define=API_ORIGIN=http://10.0.2.2:5080 --dart-define=GOOGLE_MAPS_ENABLED=true --dart-define=GOOGLE_MAPS_MAP_ID=<production-map-id>
 ```
 
 ### Run from VS Code
@@ -61,7 +64,7 @@ Select a profile in **Run and Debug**, then press `F5`. The Android profile requ
 
 On the Driver screen, tap **Start sharing** and approve the operating-system prompt. The app uses foreground/while-in-use GPS only and stops the stream when the driver stops sharing, signs out, or closes the screen. Browser geolocation requires a secure context; `localhost` is accepted for local development.
 
-The map tile endpoint is configurable:
+Without Google keys, the app intentionally uses its local Addis Ababa address list and OpenStreetMap tiles. The fallback tile endpoint is configurable:
 
 ```powershell
 flutter run --dart-define=API_ORIGIN=http://10.0.2.2:5080 --dart-define=MAP_TILE_URL=https://your-tile-provider/{z}/{x}/{y}.png
@@ -75,6 +78,10 @@ Use these local demo accounts with the password configured for the backend:
 - `driver@demo.creavers.local`
 
 For the currently running local environment, the password is `CreaversDemo!2026`.
+
+To create a new customer, choose **Create customer account**, enter an Ethiopian mobile number, and use the static development code `246810`. The next step collects the customer's full name and date of birth. This code is intentionally development-only and must be replaced with an SMS provider before production.
+
+When Google Maps is enabled, checkout uses Places API (New) session tokens through the backend, resolves the chosen place to latitude/longitude, and reverse-geocodes map taps. Server API keys remain on the backend. Android and iOS map keys are injected through ignored platform-specific secret files; the app contains no committed credentials. See [Google Maps Platform setup](../docs/google-maps-platform.md).
 
 ## Verify
 

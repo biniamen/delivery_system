@@ -27,7 +27,7 @@ export class LoginComponent {
   });
 
   constructor() {
-    if (this.auth.isAuthenticated()) void this.router.navigate(['/orders']);
+    if (this.auth.isAuthenticated()) void this.navigateHome();
   }
 
   protected submit(): void {
@@ -42,12 +42,16 @@ export class LoginComponent {
       .login(this.form.getRawValue())
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: () => {
+        next: (session) => {
           const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-          void this.router.navigateByUrl(returnUrl?.startsWith('/') ? returnUrl : '/orders');
+          if (returnUrl?.startsWith('/')) void this.router.navigateByUrl(returnUrl);
+          else void this.router.navigate([session.user.role === 'StoreAdmin' ? '/products' : '/orders']);
         },
         error: (error: unknown) => this.errorMessage.set(this.apiErrors.getMessage(error)),
       });
   }
-}
 
+  private navigateHome(): void {
+    void this.router.navigate([this.auth.user()?.role === 'StoreAdmin' ? '/products' : '/orders']);
+  }
+}

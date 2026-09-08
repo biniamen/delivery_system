@@ -15,5 +15,8 @@ export class ShellComponent {
   protected logout(): void {
     this.auth.logout();
   }
-}
 
+  protected homeUrl(): string {
+    return this.auth.user()?.role === 'StoreAdmin' ? '/products' : '/orders';
+  }
+}

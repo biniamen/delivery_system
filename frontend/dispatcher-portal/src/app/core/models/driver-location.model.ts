@@ -1,5 +1,16 @@
 export type LocationFreshness = 'Unavailable' | 'Live' | 'Recent' | 'Stale';
 
+export interface DriverLoadOrder {
+  orderId: string;
+  orderNumber: string;
+  status: 'New' | 'Assigned' | 'Accepted' | 'PickedUp' | 'Delivered' | 'Cancelled';
+  itemCount: number;
+  total: number;
+  deliveryAddress: string;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
+}
+
 export interface DriverLocation {
   driverId: string;
   displayName: string;
@@ -11,4 +22,7 @@ export interface DriverLocation {
   speedMetersPerSecond: number | null;
   capturedAtUtc: string | null;
   receivedAtUtc: string | null;
+  activeOrderCount: number;
+  activeItemCount: number;
+  activeOrders: DriverLoadOrder[];
 }

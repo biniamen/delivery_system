@@ -19,9 +19,22 @@ public sealed class CatalogueRepository(DeliveryDbContext dbContext) : ICatalogu
     {
         var distinctIds = ids.Distinct().ToArray();
         return await dbContext.Products
-            .AsNoTracking()
-            .Where(product => distinctIds.Contains(product.Id) && product.IsActive)
+            .Where(product => distinctIds.Contains(product.Id) && product.IsActive && product.StockQuantity > 0)
             .ToDictionaryAsync(product => product.Id, cancellationToken);
     }
-}
 
+    public async Task<Product?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await dbContext.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(product => product.Id == id && product.IsActive, cancellationToken);
+
+
+    public Task<Product?> GetProductAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.Products.SingleOrDefaultAsync(product => product.Id == id, cancellationToken);
+
+    public Task<Category?> GetCategoryAsync(Guid id, CancellationToken cancellationToken) =>
+        dbContext.Categories.AsNoTracking().SingleOrDefaultAsync(category => category.Id == id, cancellationToken);
+
+    public Task AddProductAsync(Product product, CancellationToken cancellationToken) =>
+        dbContext.Products.AddAsync(product, cancellationToken).AsTask();
+}

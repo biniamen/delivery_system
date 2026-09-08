@@ -2,12 +2,16 @@ import 'package:creavers_delivery_mobile/app/app_controller.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/models/catalogue.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/catalogue_service.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
+import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_controller.dart';
 import 'package:creavers_delivery_mobile/features/customer/cart/cart_page.dart';
+import 'package:creavers_delivery_mobile/features/customer/orders/customer_orders_page.dart';
 import 'package:creavers_delivery_mobile/features/customer/orders/order_tracking_page.dart';
 import 'package:creavers_delivery_mobile/features/customer/product_detail/product_detail_page.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/empty_state_card.dart';
@@ -22,6 +26,9 @@ final class CustomerHomePage extends StatefulWidget {
     required this.session,
     required this.catalogueService,
     required this.orderService,
+    required this.addressSuggestionService,
+    this.deliveryRouteService,
+    this.deviceLocationService,
     this.locationService,
     super.key,
   });
@@ -30,6 +37,9 @@ final class CustomerHomePage extends StatefulWidget {
   final AuthSession session;
   final CatalogueService catalogueService;
   final CustomerOrderService orderService;
+  final AddressSuggestionService addressSuggestionService;
+  final DeliveryRouteService? deliveryRouteService;
+  final DeviceLocationService? deviceLocationService;
   final DriverLocationService? locationService;
 
   @override
@@ -50,6 +60,7 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
     _cart = CartController();
     _searchController = TextEditingController();
     _catalogue = widget.catalogueService.fetchCatalogue();
+    _loadLatestOrder();
   }
 
   @override
@@ -62,7 +73,31 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
   Future<void> _refresh() async {
     final next = widget.catalogueService.fetchCatalogue();
     setState(() => _catalogue = next);
-    await next;
+    await Future.wait<Object?>(<Future<Object?>>[next, _loadLatestOrder()]);
+  }
+
+  Future<void> _loadLatestOrder() async {
+    try {
+      final summaries = await widget.orderService.fetchMyOrders();
+      if (summaries.isEmpty) return;
+      final latest = await widget.orderService.fetchOrder(summaries.first.id);
+      if (mounted) setState(() => _latestOrder = latest);
+    } on Object {
+      // Keep shopping available if order history is temporarily unreachable.
+    }
+  }
+
+  Future<void> _openOrders() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => CustomerOrdersPage(
+          orderService: widget.orderService,
+          locationService: widget.locationService,
+          deliveryRouteService: widget.deliveryRouteService,
+        ),
+      ),
+    );
+    await _loadLatestOrder();
   }
 
   Future<void> _openCart() async {
@@ -72,6 +107,8 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
           cart: _cart,
           session: widget.session,
           orderService: widget.orderService,
+          addressSuggestionService: widget.addressSuggestionService,
+          deviceLocationService: widget.deviceLocationService,
         ),
       ),
     );
@@ -89,6 +126,7 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
           initialOrder: order,
           orderService: widget.orderService,
           locationService: widget.locationService,
+          deliveryRouteService: widget.deliveryRouteService,
         ),
       ),
     );
@@ -107,6 +145,11 @@ final class _CustomerHomePageState extends State<CustomerHomePage> {
       appBar: AppBar(
         title: const _CompactBrand(),
         actions: <Widget>[
+          IconButton(
+            tooltip: 'My orders',
+            onPressed: _openOrders,
+            icon: const Icon(Icons.receipt_long_outlined),
+          ),
           IconButton(
             tooltip: 'Refresh catalogue',
             onPressed: _refresh,
@@ -696,14 +739,22 @@ final class _ProductCard extends StatelessWidget {
                           fontWeight: FontWeight.w900,
                         ),
                       ),
-                      const Row(
+                      Row(
                         mainAxisSize: MainAxisSize.min,
                         children: <Widget>[
-                          Icon(Icons.circle, color: Color(0xFF23A66F), size: 7),
-                          SizedBox(width: 4),
+                          Icon(
+                            Icons.circle,
+                            color: product.stockQuantity <= 10
+                                ? AppTheme.warmGold
+                                : const Color(0xFF23A66F),
+                            size: 7,
+                          ),
+                          const SizedBox(width: 4),
                           Text(
-                            'In stock',
-                            style: TextStyle(
+                            product.stockQuantity <= 10
+                                ? '${product.stockQuantity} left'
+                                : 'In stock',
+                            style: const TextStyle(
                               color: AppTheme.inkSoft,
                               fontSize: 10,
                               fontWeight: FontWeight.w700,
@@ -755,7 +806,7 @@ final class _ProductCard extends StatelessWidget {
                     IconButton(
                       tooltip: 'Increase',
                       visualDensity: VisualDensity.compact,
-                      onPressed: quantity >= CartController.maximumQuantity
+                      onPressed: !cart.canAdd(product)
                           ? null
                           : () => cart.add(product),
                       icon: const Icon(

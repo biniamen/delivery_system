@@ -80,6 +80,8 @@ final class CreateOrderRequest {
     required this.contactName,
     required this.phoneNumber,
     required this.deliveryAddress,
+    required this.deliveryLatitude,
+    required this.deliveryLongitude,
     required this.paymentMethod,
     required this.lines,
   });
@@ -88,6 +90,8 @@ final class CreateOrderRequest {
   final String contactName;
   final String phoneNumber;
   final String deliveryAddress;
+  final double deliveryLatitude;
+  final double deliveryLongitude;
   final PaymentMethod paymentMethod;
   final List<CreateOrderLine> lines;
 
@@ -96,6 +100,8 @@ final class CreateOrderRequest {
     'contactName': contactName,
     'phoneNumber': phoneNumber,
     'deliveryAddress': deliveryAddress,
+    'deliveryLatitude': deliveryLatitude,
+    'deliveryLongitude': deliveryLongitude,
     'paymentMethod': paymentMethod.apiValue,
     'lines': lines.map((line) => line.toJson()).toList(growable: false),
   };
@@ -200,6 +206,8 @@ final class DeliveryOrder {
     required this.lines,
     required this.statusHistory,
     this.assignedDriverId,
+    this.deliveryLatitude,
+    this.deliveryLongitude,
   });
 
   factory DeliveryOrder.fromJson(Map<String, Object?> json) => DeliveryOrder(
@@ -210,6 +218,8 @@ final class DeliveryOrder {
     contactName: json['contactName']! as String,
     phoneNumber: json['phoneNumber']! as String,
     deliveryAddress: json['deliveryAddress']! as String,
+    deliveryLatitude: (json['deliveryLatitude'] as num?)?.toDouble(),
+    deliveryLongitude: (json['deliveryLongitude'] as num?)?.toDouble(),
     paymentMethod: PaymentMethod.fromJson(json['paymentMethod']),
     status: DeliveryOrderStatus.fromJson(json['status']),
     subtotal: (json['subtotal']! as num).toDouble(),
@@ -234,6 +244,8 @@ final class DeliveryOrder {
   final String contactName;
   final String phoneNumber;
   final String deliveryAddress;
+  final double? deliveryLatitude;
+  final double? deliveryLongitude;
   final PaymentMethod paymentMethod;
   final DeliveryOrderStatus status;
   final double subtotal;

@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/models/delivery_route.dart';
 import 'package:creavers_delivery_mobile/core/models/driver_location.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/live_driver_map.dart';
@@ -14,12 +16,14 @@ final class OrderTrackingPage extends StatefulWidget {
     required this.initialOrder,
     required this.orderService,
     this.locationService,
+    this.deliveryRouteService,
     super.key,
   });
 
   final DeliveryOrder initialOrder;
   final CustomerOrderService orderService;
   final DriverLocationService? locationService;
+  final DeliveryRouteService? deliveryRouteService;
 
   @override
   State<OrderTrackingPage> createState() => _OrderTrackingPageState();
@@ -30,6 +34,7 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
   Timer? _refreshTimer;
   bool _isRefreshing = false;
   DriverLocation? _driverLocation;
+  DeliveryRoute? _route;
 
   @override
   void initState() {
@@ -53,6 +58,7 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
     try {
       final refreshed = await widget.orderService.fetchOrder(_order.id);
       DriverLocation? location;
+      DeliveryRoute? route = _route;
       if (refreshed.assignedDriverId != null &&
           widget.locationService != null) {
         try {
@@ -60,11 +66,19 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
         } on Object {
           location = _driverLocation;
         }
+        if (widget.deliveryRouteService != null) {
+          try {
+            route = await widget.deliveryRouteService!.fetchForOrder(_order.id);
+          } on Object {
+            route = _route;
+          }
+        }
       }
       if (mounted) {
         setState(() {
           _order = refreshed;
           _driverLocation = location;
+          _route = route;
         });
       }
     } on Object catch (error) {
@@ -105,7 +119,11 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
           if (_order.assignedDriverId != null &&
               widget.locationService != null) ...<Widget>[
             const SizedBox(height: 18),
-            _LiveDeliveryMapCard(location: _driverLocation),
+            _LiveDeliveryMapCard(
+              order: _order,
+              location: _driverLocation,
+              route: _route,
+            ),
           ],
           const SizedBox(height: 18),
           _DeliveryProgress(order: _order),
@@ -122,9 +140,32 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
 }
 
 final class _LiveDeliveryMapCard extends StatelessWidget {
-  const _LiveDeliveryMapCard({required this.location});
+  const _LiveDeliveryMapCard({
+    required this.order,
+    required this.location,
+    required this.route,
+  });
 
+  final DeliveryOrder order;
   final DriverLocation? location;
+  final DeliveryRoute? route;
+
+  String get _movementLabel {
+    final speed = location?.speedMetersPerSecond;
+    if (speed == null) return 'Speed unavailable';
+    final kilometresPerHour = speed * 3.6;
+    return kilometresPerHour < 1
+        ? 'Driver stopped'
+        : '${kilometresPerHour.round()} km/h';
+  }
+
+  String _updatedLabel(BuildContext context) {
+    final captured = location?.capturedAtUtc;
+    if (captured == null) return 'Waiting for first location update';
+    final time = MaterialLocalizations.of(context)
+        .formatTimeOfDay(TimeOfDay.fromDateTime(captured));
+    return 'Updated $time · refreshes every 5 sec';
+  }
 
   @override
   Widget build(BuildContext context) => Card(
@@ -159,17 +200,83 @@ final class _LiveDeliveryMapCard extends StatelessWidget {
           ),
           LiveDriverMap(
             location: location,
-            height: 240,
+            destinationLatitude: order.deliveryLatitude,
+            destinationLongitude: order.deliveryLongitude,
+            route: route,
+            height: 270,
             emptyLabel: 'Waiting for GPS',
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(6, 10, 6, 2),
-            child: Text(
-              location?.hasCoordinates == true
-                  ? '${location!.displayName} · ±${location!.accuracyMeters?.round() ?? 0} m'
-                  : 'The pin appears when your driver starts sharing.',
-              style: const TextStyle(color: AppTheme.inkSoft, fontSize: 12),
+            padding: const EdgeInsets.fromLTRB(6, 12, 6, 3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  location?.hasCoordinates == true
+                      ? location!.displayName
+                      : 'The pin appears when your driver starts sharing.',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: <Widget>[
+                    _MapFact(icon: Icons.speed_rounded, label: _movementLabel),
+                    if (route case final currentRoute?) ...<Widget>[
+                      _MapFact(
+                        icon: Icons.route_rounded,
+                        label: currentRoute.distanceText,
+                      ),
+                      _MapFact(
+                        icon: Icons.schedule_rounded,
+                        label: '${currentRoute.durationText} ETA',
+                      ),
+                    ],
+                    _MapFact(
+                      icon: Icons.gps_fixed_rounded,
+                      label: location?.accuracyMeters == null
+                          ? 'GPS accuracy pending'
+                          : '±${location!.accuracyMeters!.round()} m accuracy',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 9),
+                Text(
+                  _updatedLabel(context),
+                  style: const TextStyle(color: AppTheme.inkSoft, fontSize: 11),
+                ),
+              ],
             ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+final class _MapFact extends StatelessWidget {
+  const _MapFact({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      color: AppTheme.mint,
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(icon, size: 14, color: AppTheme.deepTeal),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
           ),
         ],
       ),

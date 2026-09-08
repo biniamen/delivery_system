@@ -14,7 +14,7 @@ public sealed class CatalogueService(ICatalogueRepository catalogue) : ICatalogu
                 category.Name,
                 category.Slug,
                 category.Products
-                    .Where(product => product.IsActive)
+                    .Where(product => product.IsActive && product.StockQuantity > 0)
                     .OrderBy(product => product.Name)
                     .Select(product => new ProductResponse(
                         product.Id,
@@ -22,9 +22,24 @@ public sealed class CatalogueService(ICatalogueRepository catalogue) : ICatalogu
                         product.Description,
                         product.Unit,
                         product.Price,
-                        product.ImageUrl))
+                        product.ImageUrl,
+                        product.StockQuantity))
                     .ToList()))
             .ToList();
     }
-}
 
+    public async Task<ProductResponse?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        var product = await catalogue.GetProductByIdAsync(id, cancellationToken);
+        // if (product is null)
+            return product is null
+            ? null
+            : new ProductResponse(
+                product.Id,
+                product.Name,
+                product.Description,
+                product.Unit,
+                product.Price,
+                product.ImageUrl);
+    }
+}

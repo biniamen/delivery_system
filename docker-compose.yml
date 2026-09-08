@@ -35,6 +35,11 @@ services:
       DemoAccounts__CustomerPassword: ${CUSTOMER_DEMO_PASSWORD:?configure CUSTOMER_DEMO_PASSWORD in .env}
       DemoAccounts__DispatcherPassword: ${DISPATCHER_DEMO_PASSWORD:?configure DISPATCHER_DEMO_PASSWORD in .env}
       DemoAccounts__DriverPassword: ${DRIVER_DEMO_PASSWORD:?configure DRIVER_DEMO_PASSWORD in .env}
+      DemoAccounts__StoreAdminPassword: ${STORE_ADMIN_DEMO_PASSWORD:?configure STORE_ADMIN_DEMO_PASSWORD in .env}
+      GoogleMaps__Enabled: ${GOOGLE_MAPS_ENABLED:-false}
+      GoogleMaps__ServerApiKey: ${GOOGLE_MAPS_SERVER_API_KEY:-}
+      GoogleMaps__BrowserApiKey: ${GOOGLE_MAPS_BROWSER_API_KEY:-}
+      GoogleMaps__MapId: ${GOOGLE_MAPS_MAP_ID:-DEMO_MAP_ID}
     healthcheck:
       test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health/live"]
       interval: 10s

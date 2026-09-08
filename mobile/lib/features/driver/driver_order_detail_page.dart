@@ -1,7 +1,12 @@
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/models/delivery_route.dart';
+import 'package:creavers_delivery_mobile/core/models/driver_location.dart';
 import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
+import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_order_service.dart';
 import 'package:creavers_delivery_mobile/core/theme/app_theme.dart';
+import 'package:creavers_delivery_mobile/shared/widgets/live_driver_map.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/loading_view.dart';
 import 'package:creavers_delivery_mobile/shared/widgets/order_status_chip.dart';
 import 'package:flutter/material.dart';
@@ -10,11 +15,15 @@ final class DriverOrderDetailPage extends StatefulWidget {
   const DriverOrderDetailPage({
     required this.orderId,
     required this.orderService,
+    this.locationService,
+    this.deliveryRouteService,
     super.key,
   });
 
   final String orderId;
   final DriverOrderService orderService;
+  final DriverLocationService? locationService;
+  final DeliveryRouteService? deliveryRouteService;
 
   @override
   State<DriverOrderDetailPage> createState() => _DriverOrderDetailPageState();
@@ -24,18 +33,47 @@ final class _DriverOrderDetailPageState extends State<DriverOrderDetailPage> {
   late Future<DeliveryOrder> _orderFuture;
   DeliveryOrder? _order;
   bool _isUpdating = false;
+  DriverLocation? _driverLocation;
+  DeliveryRoute? _route;
 
   @override
   void initState() {
     super.initState();
-    _orderFuture = widget.orderService.fetchOrder(widget.orderId);
+    _orderFuture = _loadOrderData();
   }
 
   Future<void> _refresh() async {
-    final next = widget.orderService.fetchOrder(widget.orderId);
+    final next = _loadOrderData();
     setState(() => _orderFuture = next);
     final order = await next;
     if (mounted) setState(() => _order = order);
+  }
+
+  Future<DeliveryOrder> _loadOrderData() async {
+    final order = await widget.orderService.fetchOrder(widget.orderId);
+    DriverLocation? location = _driverLocation;
+    DeliveryRoute? route = _route;
+    if (widget.locationService != null) {
+      try {
+        location = await widget.locationService!.fetchForOrder(order.id);
+      } on Object {
+        // Retain the most recent valid location if GPS is temporarily delayed.
+      }
+    }
+    if (widget.deliveryRouteService != null) {
+      try {
+        route = await widget.deliveryRouteService!.fetchForOrder(order.id);
+      } on Object {
+        // Route is supplemental; delivery workflow remains available offline.
+      }
+    }
+    if (mounted) {
+      setState(() {
+        _driverLocation = location;
+        _route = route;
+      });
+    }
+    return order;
   }
 
   DeliveryOrderStatus? _nextStatus(DeliveryOrderStatus status) =>
@@ -189,6 +227,12 @@ final class _DriverOrderDetailPageState extends State<DriverOrderDetailPage> {
             children: <Widget>[
               _DriverDeliveryHero(order: order),
               const SizedBox(height: 16),
+              _DriverNavigationCard(
+                order: order,
+                location: _driverLocation,
+                route: _route,
+              ),
+              const SizedBox(height: 16),
               _DriverStopCard(order: order),
               const SizedBox(height: 16),
               _DriverItemsCard(order: order),
@@ -211,6 +255,68 @@ final class _DriverOrderDetailPageState extends State<DriverOrderDetailPage> {
           ),
         );
       },
+    ),
+  );
+}
+
+final class _DriverNavigationCard extends StatelessWidget {
+  const _DriverNavigationCard({
+    required this.order,
+    required this.location,
+    required this.route,
+  });
+
+  final DeliveryOrder order;
+  final DriverLocation? location;
+  final DeliveryRoute? route;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    elevation: 0,
+    child: Padding(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Padding(
+            padding: const EdgeInsets.fromLTRB(6, 4, 6, 12),
+            child: Row(
+              children: <Widget>[
+                const Expanded(
+                  child: Text(
+                    'Live route',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                ),
+                if (route case final currentRoute?)
+                  Text(
+                    '${currentRoute.durationText} · ${currentRoute.distanceText}',
+                    style: const TextStyle(
+                      color: AppTheme.deepTeal,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          LiveDriverMap(
+            location: location,
+            destinationLatitude: order.deliveryLatitude,
+            destinationLongitude: order.deliveryLongitude,
+            route: route,
+            height: 280,
+            emptyLabel: 'Start GPS sharing',
+          ),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(6, 10, 6, 2),
+            child: Text(
+              'Traffic-aware route refreshes as your reported position changes.',
+              style: TextStyle(color: AppTheme.inkSoft, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }

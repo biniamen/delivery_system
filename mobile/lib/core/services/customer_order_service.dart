@@ -6,6 +6,8 @@ abstract interface class CustomerOrderService {
   Future<DeliveryOrder> createOrder(CreateOrderRequest request);
 
   Future<DeliveryOrder> fetchOrder(String orderId);
+
+  Future<List<DeliveryOrderSummary>> fetchMyOrders();
 }
 
 final class ApiCustomerOrderService implements CustomerOrderService {
@@ -23,6 +25,18 @@ final class ApiCustomerOrderService implements CustomerOrderService {
   Future<DeliveryOrder> fetchOrder(String orderId) async {
     final response = await _client.get('orders/$orderId');
     return _parseOrder(response);
+  }
+
+  @override
+  Future<List<DeliveryOrderSummary>> fetchMyOrders() async {
+    final response = await _client.get('orders/mine');
+    if (response is! List<Object?>) {
+      throw const ApiException(message: 'The order list was not valid.');
+    }
+    return response
+        .cast<Map<String, Object?>>()
+        .map(DeliveryOrderSummary.fromJson)
+        .toList(growable: false);
   }
 
   DeliveryOrder _parseOrder(Object? response) {

@@ -1,6 +1,7 @@
 import 'package:creavers_delivery_mobile/app/app_controller.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_order_service.dart';
@@ -20,6 +21,7 @@ final class DriverHomePage extends StatefulWidget {
     required this.orderService,
     required this.locationService,
     required this.deviceLocationService,
+    this.deliveryRouteService,
     super.key,
   });
 
@@ -28,6 +30,7 @@ final class DriverHomePage extends StatefulWidget {
   final DriverOrderService orderService;
   final DriverLocationService locationService;
   final DeviceLocationService deviceLocationService;
+  final DeliveryRouteService? deliveryRouteService;
 
   @override
   State<DriverHomePage> createState() => _DriverHomePageState();
@@ -103,6 +106,8 @@ final class _DriverHomePageState extends State<DriverHomePage> {
         builder: (_) => DriverOrderDetailPage(
           orderId: order.id,
           orderService: widget.orderService,
+          locationService: widget.locationService,
+          deliveryRouteService: widget.deliveryRouteService,
         ),
       ),
     );

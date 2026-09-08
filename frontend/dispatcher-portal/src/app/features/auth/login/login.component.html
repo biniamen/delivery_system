@@ -6,9 +6,9 @@
     </a>
 
     <div class="story-panel__copy">
-      <p class="eyebrow">Dispatch control</p>
-      <h1 id="story-title">Every order.<br><em>One clear journey.</em></h1>
-      <p>Track supermarket orders from customer confirmation through assignment and final delivery.</p>
+      <p class="eyebrow">Operations control</p>
+      <h1 id="story-title">Fresh stock.<br><em>Visible journeys.</em></h1>
+      <p>Manage supermarket availability and coordinate every delivery from confirmation to the customer’s door.</p>
     </div>
 
     <div class="journey" aria-label="Delivery workflow">
@@ -18,9 +18,9 @@
 
   <section class="login-panel" aria-labelledby="login-title">
     <div class="login-card">
-      <p class="eyebrow">Dispatcher portal</p>
+      <p class="eyebrow">Operations portal</p>
       <h2 id="login-title">Welcome back</h2>
-      <p class="login-card__intro">Sign in with your approved dispatcher account.</p>
+      <p class="login-card__intro">Sign in with an approved dispatch or supermarket-admin account.</p>
 
       @if (errorMessage()) {
         <div class="error-banner" role="alert">{{ errorMessage() }}</div>
@@ -44,7 +44,7 @@
         </div>
 
         <button class="button" type="submit" [disabled]="submitting()">
-          {{ submitting() ? 'Signing in…' : 'Sign in to dispatch' }}
+          {{ submitting() ? 'Signing in…' : 'Sign in securely' }}
         </button>
       </form>
 
@@ -52,4 +52,3 @@
     </div>
   </section>
 </main>
-

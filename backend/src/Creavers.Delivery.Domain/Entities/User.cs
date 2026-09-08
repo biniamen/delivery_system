@@ -20,7 +20,20 @@ public sealed class User
     public string PasswordHash { get; private set; } = string.Empty;
     public UserRole Role { get; private set; }
     public bool IsActive { get; private set; } = true;
+    public string? PhoneNumber { get; private set; }
+    public DateOnly? DateOfBirth { get; private set; }
+    public bool IsPhoneVerified { get; private set; }
 
     public void SetPasswordHash(string passwordHash) => PasswordHash = passwordHash;
-}
 
+    public void CompleteCustomerProfile(string phoneNumber, string displayName, DateOnly dateOfBirth)
+    {
+        if (Role != UserRole.Customer)
+            throw new InvalidOperationException("Only customer accounts can have an onboarding profile.");
+
+        PhoneNumber = phoneNumber.Trim();
+        DisplayName = displayName.Trim();
+        DateOfBirth = dateOfBirth;
+        IsPhoneVerified = true;
+    }
+}

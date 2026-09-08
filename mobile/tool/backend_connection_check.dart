@@ -59,6 +59,8 @@ Future<void> main(List<String> arguments) async {
           stdout.writeln('assigned-orders=ok count=${orders.length}');
         case UserRole.dispatcher:
           stdout.writeln('role-check=ok portal=dispatcher-web');
+        case UserRole.storeAdmin:
+          stdout.writeln('role-check=ok portal=store-admin-web');
       }
     }
   } finally {

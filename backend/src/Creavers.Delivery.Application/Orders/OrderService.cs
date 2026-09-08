@@ -31,6 +31,22 @@ public sealed partial class OrderService(
         if (products.Count != requestedIds.Length)
             throw new ValidationException(new Dictionary<string, string[]> { ["lines"] = ["One or more products are unavailable."] });
 
+        foreach (var requestedLine in request.Lines)
+        {
+            var product = products[requestedLine.ProductId];
+            try
+            {
+                product.ReserveStock(requestedLine.Quantity);
+            }
+            catch (InvalidOperationException exception)
+            {
+                throw new ValidationException(new Dictionary<string, string[]>
+                {
+                    ["lines"] = [$"{product.Name}: {exception.Message}"]
+                });
+            }
+        }
+
         var lines = request.Lines.Select(line =>
         {
             var product = products[line.ProductId];
@@ -46,6 +62,8 @@ public sealed partial class OrderService(
             request.ContactName,
             request.PhoneNumber,
             request.DeliveryAddress,
+            request.DeliveryLatitude,
+            request.DeliveryLongitude,
             request.PaymentMethod,
             DemoDeliveryFee,
             lines,
@@ -62,6 +80,14 @@ public sealed partial class OrderService(
         CancellationToken cancellationToken)
     {
         var found = await orders.ListAsync(status, driverId, cancellationToken);
+        return found.Select(MapSummary).ToList();
+    }
+
+    public async Task<IReadOnlyList<OrderSummaryResponse>> ListForCustomerAsync(
+        Guid customerId,
+        CancellationToken cancellationToken)
+    {
+        var found = await orders.ListForCustomerAsync(customerId, cancellationToken);
         return found.Select(MapSummary).ToList();
     }
 
@@ -120,6 +146,9 @@ public sealed partial class OrderService(
             errors["phoneNumber"] = ["Enter a valid Ethiopian phone number, for example +251911234567."];
         if (string.IsNullOrWhiteSpace(request.DeliveryAddress) || request.DeliveryAddress.Length > 500)
             errors["deliveryAddress"] = ["Delivery address is required and must not exceed 500 characters."];
+        if (!double.IsFinite(request.DeliveryLatitude) || !double.IsFinite(request.DeliveryLongitude) ||
+            request.DeliveryLatitude is < 8.7 or > 9.3 || request.DeliveryLongitude is < 38.5 or > 39.1)
+            errors["deliveryLocation"] = ["Select a delivery point within Addis Ababa on the map."];
         if (!Enum.IsDefined(request.PaymentMethod))
             errors["paymentMethod"] = ["Select a supported demonstration payment method."];
         if (request.Lines is null || request.Lines.Count == 0)
@@ -147,6 +176,8 @@ public sealed partial class OrderService(
         order.ContactName,
         order.PhoneNumber,
         order.DeliveryAddress,
+        order.DeliveryLatitude,
+        order.DeliveryLongitude,
         order.PaymentMethod,
         order.Status,
         order.Subtotal,

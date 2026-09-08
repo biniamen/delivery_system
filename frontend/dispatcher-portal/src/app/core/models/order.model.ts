@@ -35,6 +35,8 @@ export interface Order {
   contactName: string;
   phoneNumber: string;
   deliveryAddress: string;
+  deliveryLatitude: number | null;
+  deliveryLongitude: number | null;
   paymentMethod: PaymentMethod;
   status: OrderStatus;
   subtotal: number;
@@ -49,4 +51,3 @@ export interface Order {
 export interface AssignDriverRequest {
   driverId: string;
 }
-

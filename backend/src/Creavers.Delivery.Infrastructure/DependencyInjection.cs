@@ -1,9 +1,12 @@
 using System.Text;
 using Creavers.Delivery.Application.Authentication;
 using Creavers.Delivery.Application.Common.Interfaces;
+using Creavers.Delivery.Application.Maps;
+using Creavers.Delivery.Application.Onboarding;
 using Creavers.Delivery.Application.Repositories;
 using Creavers.Delivery.Infrastructure.Authentication;
 using Creavers.Delivery.Infrastructure.Configuration;
+using Creavers.Delivery.Infrastructure.Maps;
 using Creavers.Delivery.Infrastructure.Persistence;
 using Creavers.Delivery.Infrastructure.Persistence.Repositories;
 using Creavers.Delivery.Infrastructure.Time;
@@ -34,6 +37,23 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.AddOptions<DemoAccountsOptions>()
             .Bind(configuration.GetSection(DemoAccountsOptions.SectionName));
+        services.AddOptions<CustomerOnboardingOptions>()
+            .Bind(configuration.GetSection(CustomerOnboardingOptions.SectionName))
+            .Validate(
+                options => !options.Enabled ||
+                    (options.DevelopmentOtpCode.Length == 6 && options.DevelopmentOtpCode.All(char.IsDigit)),
+                "Customer onboarding OTP code must contain exactly six digits.")
+            .Validate(options => options.OtpLifetimeMinutes is >= 1 and <= 15, "OTP lifetime must be 1 to 15 minutes.")
+            .ValidateOnStart();
+        services.AddOptions<GoogleMapsOptions>()
+            .Bind(configuration.GetSection(GoogleMapsOptions.SectionName))
+            .Validate(
+                options => !options.Enabled || !string.IsNullOrWhiteSpace(options.ServerApiKey),
+                "GoogleMaps:ServerApiKey is required when Google Maps is enabled.")
+            .Validate(
+                options => !options.Enabled || !string.IsNullOrWhiteSpace(options.BrowserApiKey),
+                "GoogleMaps:BrowserApiKey is required when Google Maps is enabled.")
+            .ValidateOnStart();
 
         services.AddDbContext<DeliveryDbContext>(options => options.UseNpgsql(connectionString));
         services.AddScoped<IUnitOfWork>(provider => provider.GetRequiredService<DeliveryDbContext>());
@@ -41,11 +61,19 @@ public static class DependencyInjection
         services.AddScoped<ICatalogueRepository, CatalogueRepository>();
         services.AddScoped<IDriverLocationRepository, DriverLocationRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
+        services.AddHttpClient<IMapPlatformService, GoogleMapsPlatformService>(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(10);
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("Creavers-Delivery/1.0");
+        });
         services.AddScoped<
             IPasswordHasher<Creavers.Delivery.Domain.Entities.User>,
             PasswordHasher<Creavers.Delivery.Domain.Entities.User>>();
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITokenIssuer, JwtTokenIssuer>();
+        services.AddSingleton<IOtpChallengeStore, MemoryOtpChallengeStore>();
+        services.AddSingleton<ICustomerOnboardingSettings>(provider =>
+            provider.GetRequiredService<IOptions<CustomerOnboardingOptions>>().Value);
         services.AddSingleton<IClock, SystemClock>();
         services.AddScoped<DatabaseSeeder>();
 
@@ -71,7 +99,8 @@ public static class DependencyInjection
         services.AddAuthorizationBuilder()
             .AddPolicy("DispatcherOnly", policy => policy.RequireRole("Dispatcher"))
             .AddPolicy("CustomerOnly", policy => policy.RequireRole("Customer"))
-            .AddPolicy("DriverOnly", policy => policy.RequireRole("Driver"));
+            .AddPolicy("DriverOnly", policy => policy.RequireRole("Driver"))
+            .AddPolicy("StoreAdminOnly", policy => policy.RequireRole("StoreAdmin"));
 
         return services;
     }

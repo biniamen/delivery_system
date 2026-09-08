@@ -8,12 +8,21 @@ import { Order } from '../../../core/models/order.model';
 import { ApiErrorService } from '../../../core/services/api-error.service';
 import { DriverService } from '../../../core/services/driver.service';
 import { OrderService } from '../../../core/services/order.service';
+import { OrderDestinationMapComponent } from '../order-destination-map/order-destination-map.component';
 import { LoadingIndicatorComponent } from '../../../shared/components/loading-indicator/loading-indicator.component';
 import { StatusBadgeComponent } from '../../../shared/components/status-badge/status-badge.component';
 
 @Component({
   selector: 'app-order-detail',
-  imports: [DatePipe, DecimalPipe, ReactiveFormsModule, RouterLink, LoadingIndicatorComponent, StatusBadgeComponent],
+  imports: [
+    DatePipe,
+    DecimalPipe,
+    ReactiveFormsModule,
+    RouterLink,
+    LoadingIndicatorComponent,
+    OrderDestinationMapComponent,
+    StatusBadgeComponent,
+  ],
   templateUrl: './order-detail.component.html',
   styleUrl: './order-detail.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -94,4 +103,3 @@ export class OrderDetailComponent implements OnInit {
     return this.drivers().find((driver) => driver.id === driverId)?.displayName ?? 'Not assigned';
   }
 }
-

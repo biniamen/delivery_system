@@ -10,6 +10,9 @@ public sealed class UserRepository(DeliveryDbContext dbContext) : IUserRepositor
     public Task<User?> GetByEmailAsync(string normalizedEmail, CancellationToken cancellationToken) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.Email == normalizedEmail, cancellationToken);
 
+    public Task<User?> GetByPhoneAsync(string normalizedPhoneNumber, CancellationToken cancellationToken) =>
+        dbContext.Users.SingleOrDefaultAsync(user => user.PhoneNumber == normalizedPhoneNumber, cancellationToken);
+
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
@@ -19,5 +22,7 @@ public sealed class UserRepository(DeliveryDbContext dbContext) : IUserRepositor
             .Where(user => user.Role == role && user.IsActive)
             .OrderBy(user => user.DisplayName)
             .ToListAsync(cancellationToken);
-}
 
+    public Task AddAsync(User user, CancellationToken cancellationToken) =>
+        dbContext.Users.AddAsync(user, cancellationToken).AsTask();
+}

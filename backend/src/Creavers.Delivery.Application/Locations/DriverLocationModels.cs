@@ -1,5 +1,7 @@
 namespace Creavers.Delivery.Application.Locations;
 
+using Creavers.Delivery.Domain.Enums;
+
 public enum LocationFreshness
 {
     Unavailable,
@@ -16,6 +18,16 @@ public sealed record UpdateDriverLocationRequest(
     double? SpeedMetersPerSecond,
     DateTimeOffset CapturedAtUtc);
 
+public sealed record DriverLoadOrderResponse(
+    Guid OrderId,
+    string OrderNumber,
+    OrderStatus Status,
+    int ItemCount,
+    decimal Total,
+    string DeliveryAddress,
+    double? DeliveryLatitude,
+    double? DeliveryLongitude);
+
 public sealed record DriverLocationResponse(
     Guid DriverId,
     string DisplayName,
@@ -26,4 +38,7 @@ public sealed record DriverLocationResponse(
     double? HeadingDegrees,
     double? SpeedMetersPerSecond,
     DateTimeOffset? CapturedAtUtc,
-    DateTimeOffset? ReceivedAtUtc);
+    DateTimeOffset? ReceivedAtUtc,
+    int ActiveOrderCount,
+    int ActiveItemCount,
+    IReadOnlyList<DriverLoadOrderResponse> ActiveOrders);

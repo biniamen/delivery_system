@@ -6,6 +6,7 @@ final class Product {
     required this.unit,
     required this.price,
     required this.imageUrl,
+    this.stockQuantity = 50,
   });
 
   factory Product.fromJson(Map<String, Object?> json) => Product(
@@ -15,6 +16,7 @@ final class Product {
     unit: json['unit']! as String,
     price: (json['price']! as num).toDouble(),
     imageUrl: json['imageUrl']! as String,
+    stockQuantity: (json['stockQuantity'] as num?)?.toInt() ?? 0,
   );
 
   final String id;
@@ -23,6 +25,7 @@ final class Product {
   final String unit;
   final double price;
   final String imageUrl;
+  final int stockQuantity;
 }
 
 final class CatalogueCategory {

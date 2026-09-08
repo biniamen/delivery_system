@@ -82,11 +82,18 @@ final class ApiClient {
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final problem = decoded is Map<String, Object?> ? decoded : null;
+      final statusMessage = switch (response.statusCode) {
+        401 => 'Your session expired. Please sign in again and retry.',
+        403 => 'You do not have permission to complete this action.',
+        409 => 'This request conflicts with the latest order or stock status.',
+        _ => null,
+      };
       throw ApiException(
         statusCode: response.statusCode,
         message:
             problem?['detail']?.toString() ??
             problem?['title']?.toString() ??
+            statusMessage ??
             'The server could not complete the request.',
         traceId: problem?['traceId']?.toString(),
       );

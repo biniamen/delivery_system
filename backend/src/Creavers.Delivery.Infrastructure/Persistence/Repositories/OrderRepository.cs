@@ -33,6 +33,29 @@ public sealed class OrderRepository(DeliveryDbContext dbContext) : IOrderReposit
         return await query.OrderByDescending(order => order.CreatedAtUtc).ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Order>> ListForCustomerAsync(
+        Guid customerId,
+        CancellationToken cancellationToken) =>
+        await dbContext.Orders
+            .AsNoTracking()
+            .Where(order => order.CustomerId == customerId)
+            .OrderByDescending(order => order.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Order>> ListActiveByDriversAsync(
+        IReadOnlyCollection<Guid> driverIds,
+        CancellationToken cancellationToken) =>
+        await dbContext.Orders
+            .AsNoTracking()
+            .Include(order => order.Lines)
+            .Where(order =>
+                order.AssignedDriverId.HasValue &&
+                driverIds.Contains(order.AssignedDriverId.Value) &&
+                order.Status != OrderStatus.Delivered &&
+                order.Status != OrderStatus.Cancelled)
+            .OrderBy(order => order.CreatedAtUtc)
+            .ToListAsync(cancellationToken);
+
     private IQueryable<Order> QueryWithDetails() => dbContext.Orders
         .AsSplitQuery()
         .Include(order => order.Lines)

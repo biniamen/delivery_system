@@ -1,4 +1,4 @@
-export type UserRole = 'Customer' | 'Dispatcher' | 'Driver';
+export type UserRole = 'Customer' | 'Dispatcher' | 'Driver' | 'StoreAdmin';
 
 export interface AuthenticatedUser {
   id: string;
@@ -17,4 +17,3 @@ export interface AuthSession {
   expiresAtUtc: string;
   user: AuthenticatedUser;
 }
-

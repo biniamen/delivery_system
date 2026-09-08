@@ -26,6 +26,12 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     public async Task<ActionResult<IReadOnlyList<OrderSummaryResponse>>> AssignedToMe(CancellationToken cancellationToken) =>
         Ok(await orders.ListAsync(null, User.GetRequiredUserId(), cancellationToken));
 
+    [HttpGet("mine")]
+    [Authorize(Policy = "CustomerOnly")]
+    [ProducesResponseType<IReadOnlyList<OrderSummaryResponse>>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<OrderSummaryResponse>>> Mine(CancellationToken cancellationToken) =>
+        Ok(await orders.ListForCustomerAsync(User.GetRequiredUserId(), cancellationToken));
+
     [HttpGet("{id:guid}")]
     [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -73,4 +79,3 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
         CancellationToken cancellationToken) =>
         Ok(await orders.TransitionAsync(id, User.GetRequiredUserId(), request, cancellationToken));
 }
-

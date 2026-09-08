@@ -2,6 +2,7 @@ import 'package:creavers_delivery_mobile/app/app_controller.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/models/catalogue.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/services/address_suggestion_service.dart';
 import 'package:creavers_delivery_mobile/core/services/authentication_service.dart';
 import 'package:creavers_delivery_mobile/core/services/backend_connection_service.dart';
 import 'package:creavers_delivery_mobile/core/services/catalogue_service.dart';
@@ -44,6 +45,7 @@ void main() {
           session: session,
           catalogueService: _SingleProductCatalogue(),
           orderService: _SuccessfulCustomerOrderService(),
+          addressSuggestionService: const LocalAddressSuggestionService(),
         ),
       ),
     );
@@ -64,7 +66,14 @@ void main() {
 
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(1), '+251911234567');
-    await tester.enterText(fields.at(2), 'Bole, Addis Ababa');
+    await tester.enterText(fields.at(2), 'Saris');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('Suggested locations'), findsOneWidget);
+    expect(find.text('Saris Abo'), findsOneWidget);
+    await tester.tap(find.text('Saris Abo'));
+    await tester.pump();
+    expect(find.text('Exact delivery pin saved'), findsOneWidget);
     await tester.drag(find.byType(ListView).last, const Offset(0, -700));
     await tester.pumpAndSettle();
     final placeOrderButton = find.widgetWithText(
@@ -113,6 +122,10 @@ final class _SuccessfulCustomerOrderService implements CustomerOrderService {
 
   @override
   Future<DeliveryOrder> fetchOrder(String orderId) async => _order;
+
+  @override
+  Future<List<DeliveryOrderSummary>> fetchMyOrders() async =>
+      const <DeliveryOrderSummary>[];
 }
 
 final class _UnusedAuthenticationService implements AuthenticationService {

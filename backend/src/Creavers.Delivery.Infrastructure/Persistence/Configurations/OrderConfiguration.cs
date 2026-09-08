@@ -18,6 +18,8 @@ public sealed class OrderConfiguration : IEntityTypeConfiguration<Order>
         builder.Property(order => order.ContactName).HasMaxLength(100).IsRequired();
         builder.Property(order => order.PhoneNumber).HasMaxLength(30).IsRequired();
         builder.Property(order => order.DeliveryAddress).HasMaxLength(500).IsRequired();
+        builder.Property(order => order.DeliveryLatitude);
+        builder.Property(order => order.DeliveryLongitude);
         builder.Property(order => order.PaymentMethod).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(order => order.Status).HasConversion<string>().HasMaxLength(30).IsRequired();
         builder.Property(order => order.Subtotal).HasPrecision(12, 2);

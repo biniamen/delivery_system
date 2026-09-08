@@ -24,6 +24,8 @@ public sealed class Order
         string contactName,
         string phoneNumber,
         string deliveryAddress,
+        double deliveryLatitude,
+        double deliveryLongitude,
         PaymentMethod paymentMethod,
         decimal deliveryFee,
         IEnumerable<OrderLine> lines,
@@ -32,6 +34,9 @@ public sealed class Order
         var materializedLines = lines.ToList();
         if (materializedLines.Count == 0) throw new DomainRuleException("An order must contain at least one product.");
         if (deliveryFee < 0) throw new DomainRuleException("Delivery fee cannot be negative.");
+        if (!double.IsFinite(deliveryLatitude) || !double.IsFinite(deliveryLongitude) ||
+            deliveryLatitude is < -90 or > 90 || deliveryLongitude is < -180 or > 180)
+            throw new DomainRuleException("Delivery coordinates are outside the valid geographic range.");
 
         var subtotal = materializedLines.Sum(line => line.LineTotal);
         var order = new Order
@@ -43,6 +48,8 @@ public sealed class Order
             ContactName = contactName.Trim(),
             PhoneNumber = phoneNumber.Trim(),
             DeliveryAddress = deliveryAddress.Trim(),
+            DeliveryLatitude = deliveryLatitude,
+            DeliveryLongitude = deliveryLongitude,
             PaymentMethod = paymentMethod,
             Status = OrderStatus.New,
             Subtotal = subtotal,
@@ -65,6 +72,8 @@ public sealed class Order
     public string ContactName { get; private set; } = string.Empty;
     public string PhoneNumber { get; private set; } = string.Empty;
     public string DeliveryAddress { get; private set; } = string.Empty;
+    public double? DeliveryLatitude { get; private set; }
+    public double? DeliveryLongitude { get; private set; }
     public PaymentMethod PaymentMethod { get; private set; }
     public OrderStatus Status { get; private set; }
     public decimal Subtotal { get; private set; }

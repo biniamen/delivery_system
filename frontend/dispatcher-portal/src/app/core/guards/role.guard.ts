@@ -10,3 +10,10 @@ export function roleGuard(allowedRoles: UserRole[]): CanActivateFn {
   };
 }
 
+export const roleHomeGuard: CanActivateFn = () => {
+  const role = inject(AuthService).user()?.role;
+  const router = inject(Router);
+  if (role === 'StoreAdmin') return router.createUrlTree(['/products']);
+  if (role === 'Dispatcher') return router.createUrlTree(['/orders']);
+  return router.createUrlTree(['/login']);
+};
