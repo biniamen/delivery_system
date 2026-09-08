@@ -23,6 +23,12 @@ public sealed class CatalogueRepository(DeliveryDbContext dbContext) : ICatalogu
             .ToDictionaryAsync(product => product.Id, cancellationToken);
     }
 
+    public async Task<Product?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await dbContext.Products
+            .AsNoTracking()
+            .FirstOrDefaultAsync(product => product.Id == id && product.IsActive, cancellationToken);
+
+
     public Task<Product?> GetProductAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Products.SingleOrDefaultAsync(product => product.Id == id, cancellationToken);
 

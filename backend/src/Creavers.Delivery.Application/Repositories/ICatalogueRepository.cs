@@ -9,4 +9,6 @@ public interface ICatalogueRepository
     Task<Product?> GetProductAsync(Guid id, CancellationToken cancellationToken);
     Task<Category?> GetCategoryAsync(Guid id, CancellationToken cancellationToken);
     Task AddProductAsync(Product product, CancellationToken cancellationToken);
+
+    Task<Product?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken);
 }
