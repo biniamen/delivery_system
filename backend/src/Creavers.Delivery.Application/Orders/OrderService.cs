@@ -105,6 +105,14 @@ public sealed partial class OrderService(
             throw new ValidationException(new Dictionary<string, string[]> { ["driverId"] = ["Select an active driver."] });
 
         var order = await GetRequiredAsync(id, cancellationToken);
+
+        // PUT assignment is idempotent: a safe retry must not duplicate audit history.
+        if (order.Status == OrderStatus.Assigned && order.AssignedDriverId == request.DriverId)
+            return Map(order);
+
+        if (await orders.HasActiveAssignmentAsync(request.DriverId, order.Id, cancellationToken))
+            throw new ConflictException("The selected driver already has an active delivery.");
+
         order.AssignDriver(request.DriverId, dispatcherId, clock.UtcNow);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Map(order);
@@ -196,7 +204,11 @@ public sealed partial class OrderService(
             item.Status,
             item.ChangedByUserId,
             item.ChangedAtUtc,
-            item.Note)).ToList());
+            item.Note)).ToList(),
+        order.Assignments.OrderBy(item => item.AssignedAtUtc).Select(item => new AssignmentHistoryResponse(
+            item.DriverId,
+            item.AssignedByUserId,
+            item.AssignedAtUtc)).ToList());
 
     [GeneratedRegex(@"^(\+251|0)?9\d{8}$", RegexOptions.Compiled)]
     private static partial Regex EthiopianPhoneRegex();

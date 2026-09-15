@@ -116,6 +116,8 @@ public sealed partial class DatabaseSeeder(
             (_accounts.CustomerEmail, _accounts.CustomerPassword, "Demo Customer", UserRole.Customer),
             (_accounts.DispatcherEmail, _accounts.DispatcherPassword, "Demo Dispatcher", UserRole.Dispatcher),
             (_accounts.DriverEmail, _accounts.DriverPassword, "Demo Driver", UserRole.Driver),
+            ("driver2@demo.creavers.local", _accounts.DriverPassword, "Demo Driver 2", UserRole.Driver),
+            ("driver3@demo.creavers.local", _accounts.DriverPassword, "Demo Driver 3", UserRole.Driver),
             (_accounts.StoreAdminEmail, _accounts.StoreAdminPassword, "Supermarket Admin", UserRole.StoreAdmin)
         };
 

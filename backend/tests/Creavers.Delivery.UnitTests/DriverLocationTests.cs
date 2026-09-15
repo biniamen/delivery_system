@@ -142,5 +142,9 @@ public sealed class DriverLocationTests
         public Task<IReadOnlyList<Order>> ListActiveByDriversAsync(
             IReadOnlyCollection<Guid> driverIds,
             CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<Order>>([]);
+        public Task<bool> HasActiveAssignmentAsync(
+            Guid driverId,
+            Guid? excludedOrderId,
+            CancellationToken cancellationToken) => Task.FromResult(false);
     }
 }

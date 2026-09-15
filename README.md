@@ -45,6 +45,8 @@ A professional foundation for the reusable supermarket-delivery prototype: ASP.N
 
 See [architecture](docs/architecture.md) for boundaries and security decisions, and [action-plan mapping](docs/action-plan-mapping.md) for plan-to-code traceability.
 
+All development, testing, Android/iOS build, physical-phone connection, database, Docker, and Git commands are collected in [PROJECT_COMMANDS.md](PROJECT_COMMANDS.md).
+
 ## Start with Docker
 
 Prerequisites: Docker with Compose.

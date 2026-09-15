@@ -32,6 +32,11 @@ public sealed record StatusHistoryResponse(
     DateTimeOffset ChangedAtUtc,
     string? Note);
 
+public sealed record AssignmentHistoryResponse(
+    Guid DriverId,
+    Guid AssignedByUserId,
+    DateTimeOffset AssignedAtUtc);
+
 public sealed record OrderSummaryResponse(
     Guid Id,
     string OrderNumber,
@@ -59,4 +64,5 @@ public sealed record OrderResponse(
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset UpdatedAtUtc,
     IReadOnlyList<OrderLineResponse> Lines,
-    IReadOnlyList<StatusHistoryResponse> StatusHistory);
+    IReadOnlyList<StatusHistoryResponse> StatusHistory,
+    IReadOnlyList<AssignmentHistoryResponse> AssignmentHistory);

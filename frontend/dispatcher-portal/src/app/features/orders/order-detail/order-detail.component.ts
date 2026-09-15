@@ -60,7 +60,7 @@ export class OrderDetailComponent implements OnInit {
     this.errorMessage.set(null);
     forkJoin({
       order: this.orderService.getById(orderId),
-      drivers: this.driverService.getAvailable(),
+      drivers: this.driverService.getAvailable(orderId),
     })
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({

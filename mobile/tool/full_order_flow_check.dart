@@ -82,28 +82,42 @@ Future<void> main(List<String> arguments) async {
     final driver = driversResponse.first! as Map<String, Object?>;
     final driverId = driver['id']! as String;
     final driverName = driver['displayName']! as String;
+    final driverEmail = driver['email']! as String;
     final assignedResponse = await client.put(
       'orders/${created.id}/assignment',
       body: <String, Object?>{'driverId': driverId},
     );
-    final assigned = DeliveryOrder.fromJson(
-      assignedResponse! as Map<String, Object?>,
-    );
+    final assignedJson = assignedResponse! as Map<String, Object?>;
+    final assigned = DeliveryOrder.fromJson(assignedJson);
     if (assigned.deliveryLatitude != created.deliveryLatitude ||
         assigned.deliveryLongitude != created.deliveryLongitude) {
       throw StateError('Dispatcher did not receive the saved destination pin.');
     }
+    final firstAssignmentHistory =
+        assignedJson['assignmentHistory']! as List<Object?>;
+    if (firstAssignmentHistory.length != 1) {
+      throw StateError('The first assignment was not recorded exactly once.');
+    }
+
+    final assignmentRetryResponse = await client.put(
+      'orders/${created.id}/assignment',
+      body: <String, Object?>{'driverId': driverId},
+    );
+    final assignmentRetryJson =
+        assignmentRetryResponse! as Map<String, Object?>;
+    final retryAssignmentHistory =
+        assignmentRetryJson['assignmentHistory']! as List<Object?>;
+    if (retryAssignmentHistory.length != 1) {
+      throw StateError('Retrying assignment duplicated the audit history.');
+    }
     stdout.writeln(
       'dispatcher-assignment=saved driver=$driverName '
-      'status=${assigned.status.apiValue}',
+      'status=${assigned.status.apiValue} retry=idempotent',
     );
 
-    await authentication.login(
-      email: 'driver@demo.creavers.local',
-      password: password,
-    );
-    final driverOrders = await ApiDriverOrderService(client)
-        .fetchAssignedOrders();
+    await authentication.login(email: driverEmail, password: password);
+    final driverOrderService = ApiDriverOrderService(client);
+    final driverOrders = await driverOrderService.fetchAssignedOrders();
     final visibleToDriver = driverOrders.any((order) => order.id == created.id);
     if (!visibleToDriver) {
       throw StateError('The assigned order was not visible to the driver.');
@@ -113,18 +127,43 @@ Future<void> main(List<String> arguments) async {
       'assigned-count=${driverOrders.length}',
     );
 
+    final accepted = await driverOrderService.transitionOrder(
+      orderId: created.id,
+      status: DeliveryOrderStatus.accepted,
+      note: 'Accepted by automated assignment-flow check',
+    );
+    if (accepted.status != DeliveryOrderStatus.accepted) {
+      throw StateError('The assigned driver could not accept the delivery.');
+    }
+    stdout.writeln(
+      'driver-acceptance=completed status=${accepted.status.apiValue}',
+    );
+
     await authentication.login(
       email: 'customer@demo.creavers.local',
       password: password,
     );
     final tracked = await customerOrders.fetchOrder(created.id);
-    if (tracked.status != DeliveryOrderStatus.assigned ||
+    if (tracked.status != DeliveryOrderStatus.accepted ||
         tracked.assignedDriverId != driverId) {
-      throw StateError('Customer tracking did not reflect the assignment.');
+      throw StateError('Customer tracking did not reflect driver acceptance.');
     }
     stdout.writeln(
       'customer-tracking=updated status=${tracked.status.apiValue} '
       'flow=passed orderId=${tracked.id}',
+    );
+
+    // Finish the test delivery so the selected driver is available for the next run.
+    await authentication.login(email: driverEmail, password: password);
+    await driverOrderService.transitionOrder(
+      orderId: created.id,
+      status: DeliveryOrderStatus.pickedUp,
+      note: 'Automated flow cleanup',
+    );
+    await driverOrderService.transitionOrder(
+      orderId: created.id,
+      status: DeliveryOrderStatus.delivered,
+      note: 'Automated flow cleanup',
     );
   } finally {
     transport.close();

@@ -13,4 +13,8 @@ public interface IOrderRepository
     Task<IReadOnlyList<Order>> ListActiveByDriversAsync(
         IReadOnlyCollection<Guid> driverIds,
         CancellationToken cancellationToken);
+    Task<bool> HasActiveAssignmentAsync(
+        Guid driverId,
+        Guid? excludedOrderId,
+        CancellationToken cancellationToken);
 }

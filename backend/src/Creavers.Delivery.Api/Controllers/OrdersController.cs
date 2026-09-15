@@ -64,6 +64,7 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     [HttpPut("{id:guid}/assignment")]
     [Authorize(Policy = "DispatcherOnly")]
     [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<OrderResponse>> Assign(
         Guid id,
         AssignDriverRequest request,
@@ -73,6 +74,7 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
     [HttpPost("{id:guid}/transitions")]
     [Authorize(Policy = "DriverOnly")]
     [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
     public async Task<ActionResult<OrderResponse>> Transition(
         Guid id,
         TransitionOrderRequest request,

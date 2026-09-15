@@ -8,8 +8,8 @@ import { Driver } from '../models/driver.model';
 export class DriverService {
   private readonly http = inject(HttpClient);
 
-  getAvailable(): Observable<Driver[]> {
-    return this.http.get<Driver[]>(`${environment.apiBaseUrl}/drivers/available`);
+  getAvailable(forOrderId?: string): Observable<Driver[]> {
+    const options = forOrderId ? { params: { forOrderId } } : {};
+    return this.http.get<Driver[]>(`${environment.apiBaseUrl}/drivers/available`, options);
   }
 }
-

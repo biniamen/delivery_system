@@ -56,6 +56,20 @@ public sealed class OrderRepository(DeliveryDbContext dbContext) : IOrderReposit
             .OrderBy(order => order.CreatedAtUtc)
             .ToListAsync(cancellationToken);
 
+    public Task<bool> HasActiveAssignmentAsync(
+        Guid driverId,
+        Guid? excludedOrderId,
+        CancellationToken cancellationToken) =>
+        dbContext.Orders
+            .AsNoTracking()
+            .AnyAsync(
+                order =>
+                    order.AssignedDriverId == driverId &&
+                    (!excludedOrderId.HasValue || order.Id != excludedOrderId.Value) &&
+                    order.Status != OrderStatus.Delivered &&
+                    order.Status != OrderStatus.Cancelled,
+                cancellationToken);
+
     private IQueryable<Order> QueryWithDetails() => dbContext.Orders
         .AsSplitQuery()
         .Include(order => order.Lines)

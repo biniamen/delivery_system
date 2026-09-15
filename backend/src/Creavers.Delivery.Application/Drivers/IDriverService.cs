@@ -4,6 +4,7 @@ namespace Creavers.Delivery.Application.Drivers;
 
 public interface IDriverService
 {
-    Task<IReadOnlyList<AuthenticatedUser>> GetAvailableAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<AuthenticatedUser>> GetAvailableAsync(
+        Guid? forOrderId,
+        CancellationToken cancellationToken);
 }
-

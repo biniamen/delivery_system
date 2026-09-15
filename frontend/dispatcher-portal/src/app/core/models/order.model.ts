@@ -27,6 +27,12 @@ export interface OrderStatusHistory {
   note: string | null;
 }
 
+export interface DriverAssignmentHistory {
+  driverId: string;
+  assignedByUserId: string;
+  assignedAtUtc: string;
+}
+
 export interface Order {
   id: string;
   orderNumber: string;
@@ -46,6 +52,7 @@ export interface Order {
   updatedAtUtc: string;
   lines: OrderLine[];
   statusHistory: OrderStatusHistory[];
+  assignmentHistory: DriverAssignmentHistory[];
 }
 
 export interface AssignDriverRequest {

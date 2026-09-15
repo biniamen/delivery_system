@@ -37,10 +37,25 @@ foreach ($componentFile in $componentFiles) {
     }
 }
 
-$productCount = (Select-String -Path (Join-Path $repositoryRoot 'backend/src/Creavers.Delivery.Infrastructure/Persistence/DatabaseSeeder.cs') -Pattern '^\s+\("' -AllMatches).Count
+$seederContent = Get-Content -Raw -LiteralPath (
+    Join-Path $repositoryRoot 'backend/src/Creavers.Delivery.Infrastructure/Persistence/DatabaseSeeder.cs'
+)
+$catalogueBlock = [regex]::Match(
+    $seederContent,
+    'var categorySeeds = new\[\]\s*\{(?<body>.*?)\n\s*\};\s*\n\s*for \(var categoryIndex',
+    [System.Text.RegularExpressions.RegexOptions]::Singleline
+)
+if (-not $catalogueBlock.Success) {
+    throw 'Could not locate the catalogue seed block.'
+}
+
+$productCount = [regex]::Matches(
+    $catalogueBlock.Groups['body'].Value,
+    '^\s+\("[^"]+",\s*"[^"]+",\s*"[^"]+",\s*\d+m\),?$',
+    [System.Text.RegularExpressions.RegexOptions]::Multiline
+).Count
 if ($productCount -lt 36) {
     throw "Expected at least 36 seeded products; found $productCount."
 }
 
 Write-Host "Foundation checks passed: $($componentFiles.Count) Angular components have separate TS/HTML/CSS files and $productCount seeded catalogue records were found."
-

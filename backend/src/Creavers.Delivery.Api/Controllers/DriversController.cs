@@ -12,7 +12,8 @@ public sealed class DriversController(IDriverService drivers) : ControllerBase
 {
     [HttpGet("available")]
     [ProducesResponseType<IReadOnlyList<AuthenticatedUser>>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IReadOnlyList<AuthenticatedUser>>> GetAvailable(CancellationToken cancellationToken) =>
-        Ok(await drivers.GetAvailableAsync(cancellationToken));
+    public async Task<ActionResult<IReadOnlyList<AuthenticatedUser>>> GetAvailable(
+        [FromQuery] Guid? forOrderId,
+        CancellationToken cancellationToken) =>
+        Ok(await drivers.GetAvailableAsync(forOrderId, cancellationToken));
 }
-
