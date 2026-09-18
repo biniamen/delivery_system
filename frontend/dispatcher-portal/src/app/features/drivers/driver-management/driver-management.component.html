@@ -1,0 +1,131 @@
+<section class="page-heading">
+  <div>
+    <p class="eyebrow">Access control</p>
+    <h1>Driver accounts</h1>
+    <p>Register verified drivers, control activation and keep public self-registration disabled.</p>
+  </div>
+  <button class="button button--secondary" type="button" (click)="load()" [disabled]="loading()">
+    Refresh accounts
+  </button>
+</section>
+
+<section class="metrics" aria-label="Driver account summary">
+  <article><span class="metric-icon metric-icon--all">D</span><div><strong>{{ accounts().length }}</strong><small>Total drivers</small></div></article>
+  <article><span class="metric-icon metric-icon--active">✓</span><div><strong>{{ activeCount() }}</strong><small>Active</small></div></article>
+  <article><span class="metric-icon metric-icon--inactive">–</span><div><strong>{{ inactiveCount() }}</strong><small>Inactive</small></div></article>
+</section>
+
+@if (errorMessage()) {
+  <div class="error-banner" role="alert">{{ errorMessage() }}</div>
+}
+@if (successMessage()) {
+  <div class="success-banner" role="status">{{ successMessage() }}</div>
+}
+
+<div class="management-grid">
+  <section class="roster-card" aria-labelledby="account-list-title">
+    <header>
+      <div>
+        <p class="eyebrow">Operations team</p>
+        <h2 id="account-list-title">Registered drivers</h2>
+      </div>
+      <span>{{ accounts().length }} accounts</span>
+    </header>
+
+    @if (loading()) {
+      <app-loading-indicator label="Loading driver accounts…" />
+    } @else {
+      <div class="driver-list">
+        @for (driver of accounts(); track driver.id) {
+          <article class="driver-row">
+            <span class="driver-avatar" aria-hidden="true">{{ driver.displayName.charAt(0) }}</span>
+            <div class="driver-copy">
+              <div class="driver-name-line">
+                <strong>{{ driver.displayName }}</strong>
+                <span [class]="driver.isActive ? 'status status--active' : 'status status--inactive'">
+                  {{ driver.isActive ? 'Active' : 'Inactive' }}
+                </span>
+              </div>
+              <a [href]="'mailto:' + driver.email">{{ driver.email }}</a>
+              <a [href]="'tel:' + driver.phoneNumber">{{ driver.phoneNumber || 'No phone number' }}</a>
+            </div>
+            <button
+              class="button button--compact"
+              [class.button--danger]="driver.isActive"
+              [class.button--secondary]="!driver.isActive"
+              type="button"
+              (click)="setActive(driver, !driver.isActive)"
+              [disabled]="updatingDriverId() === driver.id"
+            >
+              {{ updatingDriverId() === driver.id ? 'Saving…' : driver.isActive ? 'Deactivate' : 'Activate' }}
+            </button>
+          </article>
+        } @empty {
+          <div class="empty-state">
+            <span aria-hidden="true">+</span>
+            <strong>No driver accounts</strong>
+            <p>Use the secure registration form to add the first driver.</p>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <aside class="create-card" aria-labelledby="create-driver-title">
+    <div class="create-card__icon" aria-hidden="true">+</div>
+    <p class="eyebrow">Dispatcher controlled</p>
+    <h2 id="create-driver-title">Register a driver</h2>
+    <p class="intro">Confirm the person’s identity before creating access. Drivers cannot register publicly.</p>
+
+    <form [formGroup]="form" (ngSubmit)="create()">
+      <div class="field">
+        <label for="driver-name">Full name</label>
+        <input id="driver-name" type="text" formControlName="displayName" autocomplete="name" placeholder="e.g. Hana Tesfaye" />
+        @if (form.controls.displayName.touched && form.controls.displayName.invalid) {
+          <span class="field-error">Enter a name between 2 and 100 characters.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="driver-email">Email address</label>
+        <input id="driver-email" type="email" formControlName="email" autocomplete="off" placeholder="driver@creavers.com" />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="field-error">Enter a valid email address.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="driver-phone">Phone number</label>
+        <input id="driver-phone" type="tel" formControlName="phoneNumber" autocomplete="tel" placeholder="+251911234567" />
+        @if (form.controls.phoneNumber.touched && form.controls.phoneNumber.invalid) {
+          <span class="field-error">Enter an Ethiopian mobile number.</span>
+        }
+      </div>
+
+      <div class="field">
+        <label for="driver-password">Temporary password</label>
+        <div class="password-field">
+          <input
+            id="driver-password"
+            [type]="passwordVisible() ? 'text' : 'password'"
+            formControlName="temporaryPassword"
+            autocomplete="new-password"
+            placeholder="At least 10 characters"
+          />
+          <button type="button" (click)="togglePasswordVisibility()">
+            {{ passwordVisible() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (form.controls.temporaryPassword.touched && form.controls.temporaryPassword.invalid) {
+          <span class="field-error">Use uppercase, lowercase, number and symbol.</span>
+        }
+      </div>
+
+      <button class="button button--full" type="submit" [disabled]="saving()">
+        {{ saving() ? 'Creating account…' : 'Create driver account' }}
+      </button>
+    </form>
+
+    <p class="security-note"><span aria-hidden="true">●</span> Share the temporary password privately. It is stored only as a secure hash.</p>
+  </aside>
+</div>

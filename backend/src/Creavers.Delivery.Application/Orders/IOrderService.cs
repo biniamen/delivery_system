@@ -10,4 +10,5 @@ public interface IOrderService
     Task<OrderResponse> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<OrderResponse> AssignAsync(Guid id, Guid dispatcherId, AssignDriverRequest request, CancellationToken cancellationToken);
     Task<OrderResponse> TransitionAsync(Guid id, Guid actorId, TransitionOrderRequest request, CancellationToken cancellationToken);
+    Task<OrderResponse> ConfirmDeliveryAsync(Guid id, Guid customerId, CancellationToken cancellationToken);
 }

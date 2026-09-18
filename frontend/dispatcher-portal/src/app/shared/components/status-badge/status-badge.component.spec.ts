@@ -15,5 +15,11 @@ describe('StatusBadgeComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('Picked up');
   });
-});
 
+  it('renders customer delivery confirmation clearly', () => {
+    fixture.componentRef.setInput('status', 'DeliveryConfirmed');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Confirmed received');
+  });
+});

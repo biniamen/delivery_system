@@ -35,7 +35,8 @@
   color: #2457a6;
 }
 
-.badge--delivered {
+.badge--delivered,
+.badge--deliveryconfirmed {
   background: #e8f7ef;
   color: #16794b;
 }
@@ -44,4 +45,3 @@
   background: #fff1f0;
   color: #b42318;
 }
-

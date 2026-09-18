@@ -1,4 +1,11 @@
-export type OrderStatus = 'New' | 'Assigned' | 'Accepted' | 'PickedUp' | 'Delivered' | 'Cancelled';
+export type OrderStatus =
+  | 'New'
+  | 'Assigned'
+  | 'Accepted'
+  | 'PickedUp'
+  | 'Delivered'
+  | 'DeliveryConfirmed'
+  | 'Cancelled';
 export type PaymentMethod = 'DemoCash' | 'DemoCard';
 
 export interface OrderSummary {

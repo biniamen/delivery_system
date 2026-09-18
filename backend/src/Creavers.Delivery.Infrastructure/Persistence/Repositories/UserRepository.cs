@@ -16,6 +16,13 @@ public sealed class UserRepository(DeliveryDbContext dbContext) : IUserRepositor
     public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         dbContext.Users.SingleOrDefaultAsync(user => user.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<User>> GetByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
+        await dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.Role == role)
+            .OrderBy(user => user.DisplayName)
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<User>> GetActiveByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
         await dbContext.Users
             .AsNoTracking()

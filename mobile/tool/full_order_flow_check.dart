@@ -75,6 +75,46 @@ Future<void> main(List<String> arguments) async {
       email: 'dispatcher@demo.creavers.local',
       password: password,
     );
+    final driverAccountsResponse = await client.get('drivers');
+    if (driverAccountsResponse is! List<Object?>) {
+      throw StateError('Dispatcher could not load driver accounts.');
+    }
+    const managedDriverEmail = 'readiness.driver@demo.creavers.local';
+    var managedDriver = driverAccountsResponse
+        .cast<Map<String, Object?>>()
+        .where((driver) => driver['email'] == managedDriverEmail)
+        .firstOrNull;
+    managedDriver ??=
+        (await client.post(
+              'drivers',
+              body: <String, Object?>{
+                'displayName': 'Readiness Driver',
+                'email': managedDriverEmail,
+                'phoneNumber': '+251900000099',
+                'temporaryPassword': password,
+              },
+            ))!
+            as Map<String, Object?>;
+    final managedDriverId = managedDriver['id']! as String;
+    await client.put(
+      'drivers/$managedDriverId/status',
+      body: <String, Object?>{'isActive': false},
+    );
+    final availableWhileInactive =
+        (await client.get('drivers/available'))! as List<Object?>;
+    if (availableWhileInactive.cast<Map<String, Object?>>().any(
+      (driver) => driver['id'] == managedDriverId,
+    )) {
+      throw StateError('An inactive driver remained available for assignment.');
+    }
+    await client.put(
+      'drivers/$managedDriverId/status',
+      body: <String, Object?>{'isActive': true},
+    );
+    stdout.writeln(
+      'driver-management=passed registration=controlled activation=verified',
+    );
+
     final driversResponse = await client.get('drivers/available');
     if (driversResponse is! List<Object?> || driversResponse.isEmpty) {
       throw StateError('No active driver is available for assignment.');
@@ -150,20 +190,117 @@ Future<void> main(List<String> arguments) async {
     }
     stdout.writeln(
       'customer-tracking=updated status=${tracked.status.apiValue} '
-      'flow=passed orderId=${tracked.id}',
+      'orderId=${tracked.id}',
     );
 
-    // Finish the test delivery so the selected driver is available for the next run.
     await authentication.login(email: driverEmail, password: password);
-    await driverOrderService.transitionOrder(
+    final pickedUp = await driverOrderService.transitionOrder(
       orderId: created.id,
       status: DeliveryOrderStatus.pickedUp,
-      note: 'Automated flow cleanup',
+      note: 'Picked up by automated full-flow check',
     );
-    await driverOrderService.transitionOrder(
+    if (pickedUp.status != DeliveryOrderStatus.pickedUp) {
+      throw StateError('The driver could not mark the order picked up.');
+    }
+
+    await authentication.login(
+      email: 'customer@demo.creavers.local',
+      password: password,
+    );
+    final trackedPickup = await customerOrders.fetchOrder(created.id);
+    if (trackedPickup.status != DeliveryOrderStatus.pickedUp) {
+      throw StateError('Customer tracking did not reflect supermarket pickup.');
+    }
+    stdout.writeln(
+      'customer-tracking=updated status=${trackedPickup.status.apiValue}',
+    );
+
+    await authentication.login(email: driverEmail, password: password);
+    final delivered = await driverOrderService.transitionOrder(
       orderId: created.id,
       status: DeliveryOrderStatus.delivered,
-      note: 'Automated flow cleanup',
+      note: 'Delivered by automated full-flow check',
+    );
+    if (delivered.status != DeliveryOrderStatus.delivered) {
+      throw StateError('The driver could not complete the delivery.');
+    }
+
+    // Retrying the target state simulates a lost mobile response and must not
+    // create another audit event.
+    final deliveryRetry = await driverOrderService.transitionOrder(
+      orderId: created.id,
+      status: DeliveryOrderStatus.delivered,
+      note: 'Safe delivered retry',
+    );
+
+    await authentication.login(
+      email: 'customer@demo.creavers.local',
+      password: password,
+    );
+    final completed = await customerOrders.fetchOrder(created.id);
+    final lifecycle = completed.statusHistory
+        .where(
+          (entry) => <DeliveryOrderStatus>{
+            DeliveryOrderStatus.assigned,
+            DeliveryOrderStatus.accepted,
+            DeliveryOrderStatus.pickedUp,
+            DeliveryOrderStatus.delivered,
+          }.contains(entry.status),
+        )
+        .toList(growable: false);
+    final lifecycleStates = lifecycle.map((entry) => entry.status).toList();
+    const expectedLifecycle = <DeliveryOrderStatus>[
+      DeliveryOrderStatus.assigned,
+      DeliveryOrderStatus.accepted,
+      DeliveryOrderStatus.pickedUp,
+      DeliveryOrderStatus.delivered,
+    ];
+    if (completed.status != DeliveryOrderStatus.delivered ||
+        lifecycleStates.length != expectedLifecycle.length ||
+        !List<bool>.generate(
+          expectedLifecycle.length,
+          (index) => lifecycleStates[index] == expectedLifecycle[index],
+        ).every((matches) => matches) ||
+        deliveryRetry.statusHistory.length != delivered.statusHistory.length) {
+      throw StateError(
+        'The final customer status or delivery audit trail is incomplete.',
+      );
+    }
+    for (var index = 1; index < lifecycle.length; index++) {
+      if (lifecycle[index].changedAtUtc.isBefore(
+        lifecycle[index - 1].changedAtUtc,
+      )) {
+        throw StateError('Delivery milestone timestamps are out of order.');
+      }
+    }
+
+    final confirmation = await customerOrders.confirmDelivery(created.id);
+    final confirmationRetry = await customerOrders.confirmDelivery(created.id);
+    if (confirmation.status != DeliveryOrderStatus.deliveryConfirmed ||
+        confirmationRetry.status != DeliveryOrderStatus.deliveryConfirmed ||
+        confirmationRetry.statusHistory.length !=
+            confirmation.statusHistory.length ||
+        confirmation.statusHistory.last.status !=
+            DeliveryOrderStatus.deliveryConfirmed) {
+      throw StateError('Customer delivery confirmation is not retry-safe.');
+    }
+
+    await authentication.login(
+      email: 'dispatcher@demo.creavers.local',
+      password: password,
+    );
+    final dispatcherView = DeliveryOrder.fromJson(
+      (await client.get('orders/${created.id}'))! as Map<String, Object?>,
+    );
+    if (dispatcherView.status != DeliveryOrderStatus.deliveryConfirmed) {
+      throw StateError(
+        'Dispatcher monitoring did not show customer confirmation.',
+      );
+    }
+    stdout.writeln(
+      'delivery-flow=passed status=${confirmation.status.apiValue} '
+      'history=${confirmation.statusHistory.length} retry=idempotent '
+      'customer=visible dispatcher=visible',
     );
   } finally {
     transport.close();

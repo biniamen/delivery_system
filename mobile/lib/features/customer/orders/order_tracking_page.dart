@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_route.dart';
 import 'package:creavers_delivery_mobile/core/models/driver_location.dart';
+import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
 import 'package:creavers_delivery_mobile/core/services/customer_order_service.dart';
 import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
@@ -33,6 +34,7 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
   late DeliveryOrder _order;
   Timer? _refreshTimer;
   bool _isRefreshing = false;
+  bool _isConfirming = false;
   DriverLocation? _driverLocation;
   DeliveryRoute? _route;
 
@@ -92,6 +94,81 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
     }
   }
 
+  Future<void> _confirmDelivery() async {
+    if (_isConfirming || _order.status != DeliveryOrderStatus.delivered) return;
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 6, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              const CircleAvatar(
+                radius: 27,
+                backgroundColor: Color(0xFFDDF5EA),
+                child: Icon(Icons.verified_outlined, color: Color(0xFF146B50)),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Confirm you received this order?',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'This confirmation is recorded in the order history and becomes visible to dispatch.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.inkSoft),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Yes, I received it'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Not yet'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _isConfirming = true);
+    try {
+      final updated = await widget.orderService.confirmDelivery(_order.id);
+      if (mounted) {
+        setState(() => _order = updated);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Delivery receipt confirmed. Thank you.'),
+          ),
+        );
+      }
+    } on ApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not confirm delivery. Try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isConfirming = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
@@ -116,6 +193,17 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: <Widget>[
           _TrackingHero(order: _order),
+          if (_order.status == DeliveryOrderStatus.delivered) ...<Widget>[
+            const SizedBox(height: 18),
+            _DeliveryConfirmationCard(
+              isConfirming: _isConfirming,
+              onConfirm: _confirmDelivery,
+            ),
+          ] else if (_order.status ==
+              DeliveryOrderStatus.deliveryConfirmed) ...<Widget>[
+            const SizedBox(height: 18),
+            const _DeliveryConfirmedCard(),
+          ],
           if (_order.assignedDriverId != null &&
               widget.locationService != null) ...<Widget>[
             const SizedBox(height: 18),
@@ -135,6 +223,105 @@ final class _OrderTrackingPageState extends State<OrderTrackingPage> {
           _ActivityCard(order: _order),
         ],
       ),
+    ),
+  );
+}
+
+final class _DeliveryConfirmationCard extends StatelessWidget {
+  const _DeliveryConfirmationCard({
+    required this.isConfirming,
+    required this.onConfirm,
+  });
+
+  final bool isConfirming;
+  final VoidCallback onConfirm;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        colors: <Color>[Color(0xFFFFF7E6), Color(0xFFFFFBF2)],
+      ),
+      border: Border.all(color: const Color(0xFFF1D59A)),
+      borderRadius: BorderRadius.circular(22),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        const Row(
+          children: <Widget>[
+            CircleAvatar(
+              backgroundColor: AppTheme.warmGold,
+              foregroundColor: AppTheme.ink,
+              child: Icon(Icons.inventory_2_outlined),
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Did you receive your order?',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Confirm receipt so dispatch knows the delivery reached you safely.',
+          style: TextStyle(color: AppTheme.inkSoft),
+        ),
+        const SizedBox(height: 16),
+        FilledButton.icon(
+          onPressed: isConfirming ? null : onConfirm,
+          icon: isConfirming
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.verified_outlined),
+          label: Text(isConfirming ? 'Confirming…' : 'Confirm delivery'),
+        ),
+      ],
+    ),
+  );
+}
+
+final class _DeliveryConfirmedCard extends StatelessWidget {
+  const _DeliveryConfirmedCard();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE4F6ED),
+      border: Border.all(color: const Color(0xFFBCE4CD)),
+      borderRadius: BorderRadius.circular(22),
+    ),
+    child: const Row(
+      children: <Widget>[
+        CircleAvatar(
+          backgroundColor: Color(0xFF16794B),
+          foregroundColor: Colors.white,
+          child: Icon(Icons.verified_rounded),
+        ),
+        SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Receipt confirmed',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              SizedBox(height: 3),
+              Text(
+                'Dispatch can see that you received the order.',
+                style: TextStyle(color: AppTheme.inkSoft, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -295,6 +482,7 @@ final class _TrackingHero extends StatelessWidget {
     DeliveryOrderStatus.accepted => 'Your driver accepted',
     DeliveryOrderStatus.pickedUp => 'Your order is on the way',
     DeliveryOrderStatus.delivered => 'Delivered successfully',
+    DeliveryOrderStatus.deliveryConfirmed => 'Delivery confirmed',
     DeliveryOrderStatus.cancelled => 'Order cancelled',
   };
 
@@ -308,7 +496,9 @@ final class _TrackingHero extends StatelessWidget {
     DeliveryOrderStatus.pickedUp =>
       'The products have been collected and are heading to your address.',
     DeliveryOrderStatus.delivered =>
-      'Thank you for choosing Creavers supermarket delivery.',
+      'Confirm receipt below so dispatch knows your order reached you safely.',
+    DeliveryOrderStatus.deliveryConfirmed =>
+      'Thank you. Your delivery confirmation has been recorded.',
     DeliveryOrderStatus.cancelled =>
       'This order will not be delivered. Contact dispatch for assistance.',
   };
@@ -367,6 +557,11 @@ final class _DeliveryProgress extends StatelessWidget {
     (DeliveryOrderStatus.accepted, 'Accepted', Icons.thumb_up_outlined),
     (DeliveryOrderStatus.pickedUp, 'Picked up', Icons.local_shipping_outlined),
     (DeliveryOrderStatus.delivered, 'Delivered', Icons.home_outlined),
+    (
+      DeliveryOrderStatus.deliveryConfirmed,
+      'Confirmed received',
+      Icons.verified_outlined,
+    ),
   ];
 
   int get _currentIndex => _steps.indexWhere((step) => step.$1 == order.status);

@@ -132,6 +132,9 @@ public sealed class CustomerOnboardingTests
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(Users.SingleOrDefault(user => user.Id == id));
 
+        public Task<IReadOnlyList<User>> GetByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<User>>(Users.Where(user => user.Role == role).ToList());
+
         public Task<IReadOnlyList<User>> GetActiveByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<User>>(
                 Users.Where(user => user.Role == role && user.IsActive).ToList());

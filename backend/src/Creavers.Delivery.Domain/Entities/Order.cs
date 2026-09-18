@@ -106,4 +106,21 @@ public sealed class Order
         UpdatedAtUtc = changedAtUtc;
         StatusHistory.Add(new OrderStatusHistory(Guid.NewGuid(), nextStatus, actorUserId, changedAtUtc, note));
     }
+
+    public void ConfirmDelivery(Guid customerId, DateTimeOffset confirmedAtUtc)
+    {
+        if (CustomerId != customerId)
+            throw new DomainRuleException("Only the customer who placed the order can confirm its delivery.");
+        if (Status != OrderStatus.Delivered)
+            throw new DomainRuleException("Delivery can only be confirmed after the driver marks the order delivered.");
+
+        Status = OrderStatus.DeliveryConfirmed;
+        UpdatedAtUtc = confirmedAtUtc;
+        StatusHistory.Add(new OrderStatusHistory(
+            Guid.NewGuid(),
+            Status,
+            customerId,
+            confirmedAtUtc,
+            "Customer confirmed receipt"));
+    }
 }

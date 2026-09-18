@@ -124,6 +124,9 @@ final class _SuccessfulCustomerOrderService implements CustomerOrderService {
   Future<DeliveryOrder> fetchOrder(String orderId) async => _order;
 
   @override
+  Future<DeliveryOrder> confirmDelivery(String orderId) async => _order;
+
+  @override
   Future<List<DeliveryOrderSummary>> fetchMyOrders() async =>
       const <DeliveryOrderSummary>[];
 }

@@ -33,6 +33,15 @@ export const routes: Routes = [
           import('./features/drivers/driver-map/driver-map.component').then((module) => module.DriverMapComponent),
       },
       {
+        path: 'driver-accounts',
+        canActivate: [roleGuard(['Dispatcher'])],
+        title: 'Driver accounts | Creavers Dispatch',
+        loadComponent: () =>
+          import('./features/drivers/driver-management/driver-management.component').then(
+            (module) => module.DriverManagementComponent,
+          ),
+      },
+      {
         path: 'products',
         canActivate: [roleGuard(['StoreAdmin'])],
         title: 'Product operations | Creavers',

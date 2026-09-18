@@ -3,7 +3,7 @@ export type LocationFreshness = 'Unavailable' | 'Live' | 'Recent' | 'Stale';
 export interface DriverLoadOrder {
   orderId: string;
   orderNumber: string;
-  status: 'New' | 'Assigned' | 'Accepted' | 'PickedUp' | 'Delivered' | 'Cancelled';
+  status: 'New' | 'Assigned' | 'Accepted' | 'PickedUp' | 'Delivered' | 'DeliveryConfirmed' | 'Cancelled';
   itemCount: number;
   total: number;
   deliveryAddress: string;

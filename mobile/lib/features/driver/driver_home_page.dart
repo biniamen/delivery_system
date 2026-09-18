@@ -1,6 +1,7 @@
 import 'package:creavers_delivery_mobile/app/app_controller.dart';
 import 'package:creavers_delivery_mobile/core/models/auth_session.dart';
 import 'package:creavers_delivery_mobile/core/models/delivery_order.dart';
+import 'package:creavers_delivery_mobile/core/network/api_exception.dart';
 import 'package:creavers_delivery_mobile/core/services/delivery_route_service.dart';
 import 'package:creavers_delivery_mobile/core/services/device_location_service.dart';
 import 'package:creavers_delivery_mobile/core/services/driver_location_service.dart';
@@ -81,6 +82,29 @@ final class _DriverHomePageState extends State<DriverHomePage> {
   Future<void> _advance(DeliveryOrderSummary order) async {
     final next = _nextStatus(order.status);
     if (next == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const Icon(Icons.fact_check_outlined),
+        title: Text(_actionLabel(next)),
+        content: Text(
+          'Update ${order.orderNumber} to ${next.label}? This becomes visible to dispatch and the customer.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not yet'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _transitioningOrderId = order.id);
     try {
       await widget.orderService.transitionOrder(
@@ -89,10 +113,22 @@ final class _DriverHomePageState extends State<DriverHomePage> {
         note: 'Updated from the Creavers driver app',
       );
       await _refresh();
-    } on Object catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update the order: $error')),
+          SnackBar(content: Text('${order.orderNumber} is now ${next.label}.')),
+        );
+      }
+    } on ApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Connection interrupted. Refresh and try again.'),
+          ),
         );
       }
     } finally {

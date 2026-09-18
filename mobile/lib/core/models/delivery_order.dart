@@ -4,6 +4,7 @@ enum DeliveryOrderStatus {
   accepted,
   pickedUp,
   delivered,
+  deliveryConfirmed,
   cancelled;
 
   static DeliveryOrderStatus fromJson(Object? value) =>
@@ -13,6 +14,7 @@ enum DeliveryOrderStatus {
         'accepted' => DeliveryOrderStatus.accepted,
         'pickedup' => DeliveryOrderStatus.pickedUp,
         'delivered' => DeliveryOrderStatus.delivered,
+        'deliveryconfirmed' => DeliveryOrderStatus.deliveryConfirmed,
         'cancelled' => DeliveryOrderStatus.cancelled,
         _ => throw FormatException('Unknown order status: $value'),
       };
@@ -23,6 +25,7 @@ enum DeliveryOrderStatus {
     DeliveryOrderStatus.accepted => 'Accepted',
     DeliveryOrderStatus.pickedUp => 'PickedUp',
     DeliveryOrderStatus.delivered => 'Delivered',
+    DeliveryOrderStatus.deliveryConfirmed => 'DeliveryConfirmed',
     DeliveryOrderStatus.cancelled => 'Cancelled',
   };
 
@@ -32,11 +35,13 @@ enum DeliveryOrderStatus {
     DeliveryOrderStatus.accepted => 'Accepted',
     DeliveryOrderStatus.pickedUp => 'Picked up',
     DeliveryOrderStatus.delivered => 'Delivered',
+    DeliveryOrderStatus.deliveryConfirmed => 'Confirmed received',
     DeliveryOrderStatus.cancelled => 'Cancelled',
   };
 
   bool get isTerminal =>
       this == DeliveryOrderStatus.delivered ||
+      this == DeliveryOrderStatus.deliveryConfirmed ||
       this == DeliveryOrderStatus.cancelled;
 }
 
@@ -255,4 +260,11 @@ final class DeliveryOrder {
   final DateTime updatedAtUtc;
   final List<DeliveryOrderLine> lines;
   final List<OrderStatusHistoryEntry> statusHistory;
+
+  OrderStatusHistoryEntry? historyFor(DeliveryOrderStatus target) {
+    for (final entry in statusHistory.reversed) {
+      if (entry.status == target) return entry;
+    }
+    return null;
+  }
 }

@@ -10,6 +10,9 @@ import { OrderStatus } from '../../../core/models/order.model';
 export class StatusBadgeComponent {
   readonly status = input.required<OrderStatus>();
   protected readonly cssClass = computed(() => `badge badge--${this.status().toLowerCase()}`);
-  protected readonly label = computed(() => this.status() === 'PickedUp' ? 'Picked up' : this.status());
+  protected readonly label = computed(() => {
+    if (this.status() === 'PickedUp') return 'Picked up';
+    if (this.status() === 'DeliveryConfirmed') return 'Confirmed received';
+    return this.status();
+  });
 }
-

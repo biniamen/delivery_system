@@ -1,6 +1,7 @@
 Map<String, Object?> orderFixture({
   String status = 'New',
   String? assignedDriverId,
+  List<Object?>? statusHistory,
 }) => <String, Object?>{
   'id': '00000000-0000-0000-0000-000000000100',
   'orderNumber': 'CRV-20260831-TEST01',
@@ -26,12 +27,14 @@ Map<String, Object?> orderFixture({
       'lineTotal': 120,
     },
   ],
-  'statusHistory': <Object?>[
-    <String, Object?>{
-      'status': 'New',
-      'changedByUserId': '00000000-0000-0000-0000-000000000001',
-      'changedAtUtc': '2026-08-31T07:00:00Z',
-      'note': 'Order placed',
-    },
-  ],
+  'statusHistory':
+      statusHistory ??
+      <Object?>[
+        <String, Object?>{
+          'status': 'New',
+          'changedByUserId': '00000000-0000-0000-0000-000000000001',
+          'changedAtUtc': '2026-08-31T07:00:00Z',
+          'note': 'Order placed',
+        },
+      ],
 };

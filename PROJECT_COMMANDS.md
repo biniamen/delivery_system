@@ -365,6 +365,14 @@ flutter --no-version-check analyze
 flutter --no-version-check test
 ```
 
+Complete CEO/client demonstration readiness check, including the real database-backed flow:
+
+```powershell
+Set-Location "C:\Users\HP\Documents\ChatGPT\Delivery System"
+$env:CREAVERS_TEST_PASSWORD = "CreaversDemo!2026"
+.\scripts\check-demo-readiness.ps1
+```
+
 ## 16. Database migrations
 
 ```powershell

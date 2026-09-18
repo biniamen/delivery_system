@@ -7,6 +7,8 @@ abstract interface class CustomerOrderService {
 
   Future<DeliveryOrder> fetchOrder(String orderId);
 
+  Future<DeliveryOrder> confirmDelivery(String orderId);
+
   Future<List<DeliveryOrderSummary>> fetchMyOrders();
 }
 
@@ -24,6 +26,14 @@ final class ApiCustomerOrderService implements CustomerOrderService {
   @override
   Future<DeliveryOrder> fetchOrder(String orderId) async {
     final response = await _client.get('orders/$orderId');
+    return _parseOrder(response);
+  }
+
+  @override
+  Future<DeliveryOrder> confirmDelivery(String orderId) async {
+    final response = await _client.post(
+      'orders/$orderId/delivery-confirmation',
+    );
     return _parseOrder(response);
   }
 

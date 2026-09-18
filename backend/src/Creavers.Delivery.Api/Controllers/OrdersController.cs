@@ -80,4 +80,13 @@ public sealed class OrdersController(IOrderService orders) : ControllerBase
         TransitionOrderRequest request,
         CancellationToken cancellationToken) =>
         Ok(await orders.TransitionAsync(id, User.GetRequiredUserId(), request, cancellationToken));
+
+    [HttpPost("{id:guid}/delivery-confirmation")]
+    [Authorize(Policy = "CustomerOnly")]
+    [ProducesResponseType<OrderResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<OrderResponse>> ConfirmDelivery(
+        Guid id,
+        CancellationToken cancellationToken) =>
+        Ok(await orders.ConfirmDeliveryAsync(id, User.GetRequiredUserId(), cancellationToken));
 }

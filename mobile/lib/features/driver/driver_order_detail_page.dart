@@ -227,6 +227,8 @@ final class _DriverOrderDetailPageState extends State<DriverOrderDetailPage> {
             children: <Widget>[
               _DriverDeliveryHero(order: order),
               const SizedBox(height: 16),
+              _DeliveryProgressCard(order: order),
+              const SizedBox(height: 16),
               _DriverNavigationCard(
                 order: order,
                 location: _driverLocation,
@@ -250,6 +252,10 @@ final class _DriverOrderDetailPageState extends State<DriverOrderDetailPage> {
                     _isUpdating ? 'Updating delivery…' : _actionLabel(next),
                   ),
                 ),
+              ],
+              if (order.status == DeliveryOrderStatus.delivered) ...<Widget>[
+                const SizedBox(height: 18),
+                const _DeliveryCompleteCard(),
               ],
             ],
           ),
@@ -366,6 +372,214 @@ final class _DriverDeliveryHero extends StatelessWidget {
           ),
         ],
       ),
+    ),
+  );
+}
+
+final class _DeliveryProgressCard extends StatelessWidget {
+  const _DeliveryProgressCard({required this.order});
+
+  final DeliveryOrder order;
+
+  static const _milestones = <DeliveryOrderStatus>[
+    DeliveryOrderStatus.assigned,
+    DeliveryOrderStatus.accepted,
+    DeliveryOrderStatus.pickedUp,
+    DeliveryOrderStatus.delivered,
+  ];
+
+  @override
+  Widget build(BuildContext context) => Card(
+    elevation: 0,
+    child: Padding(
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Expanded(
+                child: Text(
+                  'Delivery progress',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ),
+              Text(
+                order.status.label,
+                style: const TextStyle(
+                  color: AppTheme.deepTeal,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          for (var index = 0; index < _milestones.length; index++)
+            _ProgressMilestone(
+              status: _milestones[index],
+              history: order.historyFor(_milestones[index]),
+              isCurrent: order.status == _milestones[index],
+              showConnector: index < _milestones.length - 1,
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+final class _ProgressMilestone extends StatelessWidget {
+  const _ProgressMilestone({
+    required this.status,
+    required this.history,
+    required this.isCurrent,
+    required this.showConnector,
+  });
+
+  final DeliveryOrderStatus status;
+  final OrderStatusHistoryEntry? history;
+  final bool isCurrent;
+  final bool showConnector;
+
+  @override
+  Widget build(BuildContext context) {
+    final isComplete = history != null;
+    final color = isComplete ? AppTheme.deepTeal : const Color(0xFFB8C5C4);
+    final localizations = MaterialLocalizations.of(context);
+    final recordedAt = history?.changedAtUtc;
+    final timestamp = recordedAt == null
+        ? 'Pending'
+        : '${localizations.formatCompactDate(recordedAt)} · '
+              '${localizations.formatTimeOfDay(TimeOfDay.fromDateTime(recordedAt))}';
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          SizedBox(
+            width: 28,
+            child: Column(
+              children: <Widget>[
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: isComplete ? AppTheme.mint : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: color, width: 2),
+                  ),
+                  child: Icon(
+                    isComplete ? Icons.check_rounded : Icons.circle_outlined,
+                    color: color,
+                    size: 15,
+                  ),
+                ),
+                if (showConnector)
+                  Expanded(
+                    child: Container(
+                      width: 2,
+                      margin: const EdgeInsets.symmetric(vertical: 3),
+                      color: isComplete
+                          ? AppTheme.mint
+                          : const Color(0xFFE1E8E7),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: showConnector ? 15 : 0),
+              child: Row(
+                children: <Widget>[
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          status.label,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: isComplete ? AppTheme.ink : AppTheme.inkSoft,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          timestamp,
+                          style: const TextStyle(
+                            color: AppTheme.inkSoft,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isCurrent)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.warmGold.withValues(alpha: .2),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: const Text(
+                        'CURRENT',
+                        style: TextStyle(
+                          color: AppTheme.ink,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _DeliveryCompleteCard extends StatelessWidget {
+  const _DeliveryCompleteCard();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: const Color(0xFFE4F6ED),
+      borderRadius: BorderRadius.circular(20),
+      border: Border.all(color: const Color(0xFFBCE4CD)),
+    ),
+    child: const Row(
+      children: <Widget>[
+        CircleAvatar(
+          backgroundColor: Color(0xFF16794B),
+          foregroundColor: Colors.white,
+          child: Icon(Icons.task_alt_rounded),
+        ),
+        SizedBox(width: 13),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text(
+                'Delivery completed',
+                style: TextStyle(fontWeight: FontWeight.w900),
+              ),
+              SizedBox(height: 3),
+              Text(
+                'Dispatch and the customer can now see the final status.',
+                style: TextStyle(color: AppTheme.inkSoft, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ],
     ),
   );
 }

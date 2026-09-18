@@ -85,4 +85,30 @@ void main() {
     expect(orders, hasLength(1));
     expect(orders.single.status, DeliveryOrderStatus.assigned);
   });
+
+  test(
+    'customer confirms receipt through the delivery confirmation endpoint',
+    () async {
+      final transport = FakeHttpTransport(
+        TransportResponse(
+          statusCode: 200,
+          body: jsonEncode(orderFixture(status: 'DeliveryConfirmed')),
+        ),
+      );
+      final client = ApiClient(
+        transport,
+        config: AppConfig(apiOrigin: Uri.parse('http://127.0.0.1:5080')),
+      )..accessToken = 'customer-token';
+
+      final order = await ApiCustomerOrderService(client)
+          .confirmDelivery('00000000-0000-0000-0000-000000000100');
+
+      expect(transport.lastRequest?.method, 'POST');
+      expect(
+        transport.lastRequest?.uri.toString(),
+        'http://127.0.0.1:5080/api/v1/orders/00000000-0000-0000-0000-000000000100/delivery-confirmation',
+      );
+      expect(order.status, DeliveryOrderStatus.deliveryConfirmed);
+    },
+  );
 }

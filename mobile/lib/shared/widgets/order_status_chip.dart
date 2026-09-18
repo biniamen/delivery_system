@@ -25,6 +25,10 @@ final class OrderStatusChip extends StatelessWidget {
         const Color(0xFFDDF5EA),
         const Color(0xFF146B50),
       ),
+      DeliveryOrderStatus.deliveryConfirmed => (
+        const Color(0xFFD7F3E3),
+        const Color(0xFF0C6141),
+      ),
       DeliveryOrderStatus.cancelled => (
         const Color(0xFFFFE3E1),
         const Color(0xFFA12C26),

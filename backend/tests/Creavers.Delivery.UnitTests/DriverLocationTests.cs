@@ -122,6 +122,9 @@ public sealed class DriverLocationTests
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(users.SingleOrDefault(user => user.Id == id));
 
+        public Task<IReadOnlyList<User>> GetByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<User>>(users.Where(user => user.Role == role).ToList());
+
         public Task<IReadOnlyList<User>> GetActiveByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<User>>(users.Where(user => user.Role == role && user.IsActive).ToList());
 

@@ -134,10 +134,45 @@ public sealed partial class OrderService(
         if (order.AssignedDriverId != actorId)
             throw new ConflictException("Only the assigned driver can update this order.");
 
-        order.TransitionTo(request.Status, actorId, clock.UtcNow, request.Note);
+        // A mobile client can lose the success response and safely retry the same
+        // target-state command. Do not create a second history item or surface a
+        // false workflow error when the requested state is already current.
+        if (order.Status == request.Status)
+            return Map(order);
+
+        var note = string.IsNullOrWhiteSpace(request.Note)
+            ? DefaultTransitionNote(request.Status)
+            : request.Note.Trim();
+        order.TransitionTo(request.Status, actorId, clock.UtcNow, note);
         await unitOfWork.SaveChangesAsync(cancellationToken);
         return Map(order);
     }
+
+    public async Task<OrderResponse> ConfirmDeliveryAsync(
+        Guid id,
+        Guid customerId,
+        CancellationToken cancellationToken)
+    {
+        var order = await GetRequiredAsync(id, cancellationToken);
+        if (order.CustomerId != customerId)
+            throw new ConflictException("Only the customer who placed the order can confirm its delivery.");
+
+        // Customer confirmation is a target-state command and is safe to retry.
+        if (order.Status == OrderStatus.DeliveryConfirmed)
+            return Map(order);
+
+        order.ConfirmDelivery(customerId, clock.UtcNow);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
+        return Map(order);
+    }
+
+    private static string DefaultTransitionNote(OrderStatus status) => status switch
+    {
+        OrderStatus.Accepted => "Delivery accepted by driver",
+        OrderStatus.PickedUp => "Order picked up from supermarket",
+        OrderStatus.Delivered => "Order delivered to customer",
+        _ => "Delivery status updated"
+    };
 
     private async Task<Order> GetRequiredAsync(Guid id, CancellationToken cancellationToken) =>
         await orders.GetByIdAsync(id, cancellationToken)

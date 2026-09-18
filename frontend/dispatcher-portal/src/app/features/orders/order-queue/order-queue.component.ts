@@ -28,10 +28,10 @@ export class OrderQueueComponent implements OnInit, OnDestroy {
   protected readonly lastUpdated = signal<Date | null>(null);
   protected readonly newOrderCount = computed(() => this.orders().filter((order) => order.status === 'New').length);
   protected readonly activeOrderCount = computed(() =>
-    this.orders().filter((order) => !['Delivered', 'Cancelled'].includes(order.status)).length,
+    this.orders().filter((order) => !['Delivered', 'DeliveryConfirmed', 'Cancelled'].includes(order.status)).length,
   );
   protected readonly deliveredOrderCount = computed(() =>
-    this.orders().filter((order) => order.status === 'Delivered').length,
+    this.orders().filter((order) => ['Delivered', 'DeliveryConfirmed'].includes(order.status)).length,
   );
   protected readonly statuses: Array<OrderStatus | ''> = [
     '',
@@ -40,6 +40,7 @@ export class OrderQueueComponent implements OnInit, OnDestroy {
     'Accepted',
     'PickedUp',
     'Delivered',
+    'DeliveryConfirmed',
     'Cancelled',
   ];
   private readonly refreshSubscription = interval(10_000)
@@ -84,6 +85,8 @@ export class OrderQueueComponent implements OnInit, OnDestroy {
 
   protected statusLabel(status: OrderStatus | ''): string {
     if (!status) return 'All statuses';
-    return status === 'PickedUp' ? 'Picked up' : status;
+    if (status === 'PickedUp') return 'Picked up';
+    if (status === 'DeliveryConfirmed') return 'Confirmed received';
+    return status;
   }
 }

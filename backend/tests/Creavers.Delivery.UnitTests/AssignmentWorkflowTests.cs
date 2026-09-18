@@ -1,3 +1,4 @@
+using Creavers.Delivery.Application.Authentication;
 using Creavers.Delivery.Application.Common.Exceptions;
 using Creavers.Delivery.Application.Common.Interfaces;
 using Creavers.Delivery.Application.Drivers;
@@ -23,7 +24,9 @@ public sealed class AssignmentWorkflowTests
         var orders = new InMemoryOrderRepository(activeOrder);
         var service = new DriverService(
             new InMemoryUserRepository(busyDriver, freeDriver),
-            orders);
+            orders,
+            new FakePasswordService(),
+            new RecordingUnitOfWork());
 
         var available = await service.GetAvailableAsync(null, default);
         var availableForCurrentOrder = await service.GetAvailableAsync(activeOrder.Id, default);
@@ -101,6 +104,149 @@ public sealed class AssignmentWorkflowTests
     }
 
     [Fact]
+    public async Task AssignedDriverCanCompleteDeliveryWithOrderedTimestampsAndAuditHistory()
+    {
+        var driver = Driver("driver@demo.local", "Demo Driver");
+        var dispatcherId = Guid.NewGuid();
+        var assignedAt = Now.AddMinutes(-5);
+        var order = OrderFor(Guid.NewGuid());
+        order.AssignDriver(driver.Id, dispatcherId, assignedAt);
+        var repository = new InMemoryOrderRepository(order);
+        var unitOfWork = new RecordingUnitOfWork();
+        var clock = new MutableClock(Now);
+        var service = CreateOrderService(
+            repository,
+            new InMemoryUserRepository(driver),
+            unitOfWork,
+            clock);
+
+        var accepted = await service.TransitionAsync(
+            order.Id,
+            driver.Id,
+            new TransitionOrderRequest(OrderStatus.Accepted, null),
+            default);
+        clock.UtcNow = Now.AddMinutes(12);
+        var pickedUp = await service.TransitionAsync(
+            order.Id,
+            driver.Id,
+            new TransitionOrderRequest(OrderStatus.PickedUp, null),
+            default);
+        clock.UtcNow = Now.AddMinutes(35);
+        var delivered = await service.TransitionAsync(
+            order.Id,
+            driver.Id,
+            new TransitionOrderRequest(OrderStatus.Delivered, null),
+            default);
+
+        Assert.Equal(OrderStatus.Accepted, accepted.Status);
+        Assert.Equal(OrderStatus.PickedUp, pickedUp.Status);
+        Assert.Equal(OrderStatus.Delivered, delivered.Status);
+        Assert.Equal(Now.AddMinutes(35), delivered.UpdatedAtUtc);
+        Assert.Collection(
+            delivered.StatusHistory.Skip(1),
+            entry =>
+            {
+                Assert.Equal(OrderStatus.Assigned, entry.Status);
+                Assert.Equal(assignedAt, entry.ChangedAtUtc);
+                Assert.Equal(dispatcherId, entry.ChangedByUserId);
+            },
+            entry =>
+            {
+                Assert.Equal(OrderStatus.Accepted, entry.Status);
+                Assert.Equal(Now, entry.ChangedAtUtc);
+                Assert.Equal("Delivery accepted by driver", entry.Note);
+            },
+            entry =>
+            {
+                Assert.Equal(OrderStatus.PickedUp, entry.Status);
+                Assert.Equal(Now.AddMinutes(12), entry.ChangedAtUtc);
+                Assert.Equal("Order picked up from supermarket", entry.Note);
+            },
+            entry =>
+            {
+                Assert.Equal(OrderStatus.Delivered, entry.Status);
+                Assert.Equal(Now.AddMinutes(35), entry.ChangedAtUtc);
+                Assert.Equal("Order delivered to customer", entry.Note);
+            });
+        Assert.Equal(3, unitOfWork.SaveCount);
+    }
+
+    [Fact]
+    public async Task RepeatingCurrentDriverTransitionIsIdempotent()
+    {
+        var driver = Driver("driver@demo.local", "Demo Driver");
+        var order = OrderFor(Guid.NewGuid());
+        order.AssignDriver(driver.Id, Guid.NewGuid(), Now.AddMinutes(-5));
+        var repository = new InMemoryOrderRepository(order);
+        var unitOfWork = new RecordingUnitOfWork();
+        var service = CreateOrderService(repository, new InMemoryUserRepository(driver), unitOfWork);
+        var request = new TransitionOrderRequest(OrderStatus.Accepted, "Accepted on device");
+
+        var first = await service.TransitionAsync(order.Id, driver.Id, request, default);
+        var retry = await service.TransitionAsync(order.Id, driver.Id, request, default);
+
+        Assert.Equal(OrderStatus.Accepted, retry.Status);
+        Assert.Equal(first.UpdatedAtUtc, retry.UpdatedAtUtc);
+        Assert.Equal(3, retry.StatusHistory.Count);
+        Assert.Equal(1, unitOfWork.SaveCount);
+    }
+
+    [Fact]
+    public async Task CustomerCanConfirmDeliveredOrderAndRetryWithoutDuplicateHistory()
+    {
+        var customerId = Guid.NewGuid();
+        var driver = Driver("driver@demo.local", "Demo Driver");
+        var order = OrderFor(customerId);
+        order.AssignDriver(driver.Id, Guid.NewGuid(), Now.AddMinutes(-5));
+        var repository = new InMemoryOrderRepository(order);
+        var unitOfWork = new RecordingUnitOfWork();
+        var service = CreateOrderService(repository, new InMemoryUserRepository(driver), unitOfWork);
+
+        await service.TransitionAsync(
+            order.Id,
+            driver.Id,
+            new TransitionOrderRequest(OrderStatus.Accepted, null),
+            default);
+        await service.TransitionAsync(
+            order.Id,
+            driver.Id,
+            new TransitionOrderRequest(OrderStatus.PickedUp, null),
+            default);
+        await service.TransitionAsync(
+            order.Id,
+            driver.Id,
+            new TransitionOrderRequest(OrderStatus.Delivered, null),
+            default);
+
+        var confirmed = await service.ConfirmDeliveryAsync(order.Id, customerId, default);
+        var retry = await service.ConfirmDeliveryAsync(order.Id, customerId, default);
+
+        Assert.Equal(OrderStatus.DeliveryConfirmed, confirmed.Status);
+        Assert.Equal(OrderStatus.DeliveryConfirmed, retry.Status);
+        Assert.Equal(6, retry.StatusHistory.Count);
+        Assert.Equal(customerId, retry.StatusHistory[^1].ChangedByUserId);
+        Assert.Equal("Customer confirmed receipt", retry.StatusHistory[^1].Note);
+        Assert.Equal(4, unitOfWork.SaveCount);
+    }
+
+    [Fact]
+    public async Task AnotherCustomerCannotConfirmTheDelivery()
+    {
+        var customerId = Guid.NewGuid();
+        var order = OrderFor(customerId);
+        var repository = new InMemoryOrderRepository(order);
+        var unitOfWork = new RecordingUnitOfWork();
+        var service = CreateOrderService(repository, new InMemoryUserRepository(), unitOfWork);
+
+        var action = () => service.ConfirmDeliveryAsync(order.Id, Guid.NewGuid(), default);
+
+        var exception = await Assert.ThrowsAsync<ConflictException>(action);
+        Assert.Contains("customer who placed", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(OrderStatus.New, order.Status);
+        Assert.Equal(0, unitOfWork.SaveCount);
+    }
+
+    [Fact]
     public async Task UnassignedDriverCannotAcceptAnotherDriversDelivery()
     {
         var assignedDriver = Driver("assigned@demo.local", "Assigned Driver");
@@ -129,8 +275,9 @@ public sealed class AssignmentWorkflowTests
     private static OrderService CreateOrderService(
         InMemoryOrderRepository orders,
         InMemoryUserRepository users,
-        RecordingUnitOfWork unitOfWork) =>
-        new(orders, new EmptyCatalogueRepository(), users, unitOfWork, new FixedClock());
+        RecordingUnitOfWork unitOfWork,
+        IClock? clock = null) =>
+        new(orders, new EmptyCatalogueRepository(), users, unitOfWork, clock ?? new FixedClock());
 
     private static User Driver(string email, string name) =>
         new(Guid.NewGuid(), email, name, UserRole.Driver);
@@ -155,6 +302,11 @@ public sealed class AssignmentWorkflowTests
         public DateTimeOffset UtcNow => Now;
     }
 
+    private sealed class MutableClock(DateTimeOffset utcNow) : IClock
+    {
+        public DateTimeOffset UtcNow { get; set; } = utcNow;
+    }
+
     private sealed class RecordingUnitOfWork : IUnitOfWork
     {
         public int SaveCount { get; private set; }
@@ -176,6 +328,10 @@ public sealed class AssignmentWorkflowTests
 
         public Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
             Task.FromResult(users.SingleOrDefault(user => user.Id == id));
+
+        public Task<IReadOnlyList<User>> GetByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<User>>(
+                users.Where(user => user.Role == role).OrderBy(user => user.DisplayName).ToList());
 
         public Task<IReadOnlyList<User>> GetActiveByRoleAsync(UserRole role, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<User>>(
@@ -226,7 +382,7 @@ public sealed class AssignmentWorkflowTests
                 .Where(order =>
                     order.AssignedDriverId.HasValue &&
                     driverIds.Contains(order.AssignedDriverId.Value) &&
-                    order.Status is not (OrderStatus.Delivered or OrderStatus.Cancelled))
+                    order.Status is not (OrderStatus.Delivered or OrderStatus.DeliveryConfirmed or OrderStatus.Cancelled))
                 .ToList());
 
         public Task<bool> HasActiveAssignmentAsync(
@@ -236,7 +392,7 @@ public sealed class AssignmentWorkflowTests
             Task.FromResult(_orders.Any(order =>
                 order.AssignedDriverId == driverId &&
                 (!excludedOrderId.HasValue || order.Id != excludedOrderId.Value) &&
-                order.Status is not (OrderStatus.Delivered or OrderStatus.Cancelled)));
+                order.Status is not (OrderStatus.Delivered or OrderStatus.DeliveryConfirmed or OrderStatus.Cancelled)));
     }
 
     private sealed class EmptyCatalogueRepository : ICatalogueRepository
@@ -257,5 +413,13 @@ public sealed class AssignmentWorkflowTests
 
         public Task AddProductAsync(Product product, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class FakePasswordService : IPasswordService
+    {
+        public string Hash(User user, string password) => $"hash:{password}";
+
+        public bool Verify(User user, string passwordHash, string suppliedPassword) =>
+            passwordHash == $"hash:{suppliedPassword}";
     }
 }

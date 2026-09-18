@@ -52,6 +52,7 @@ public sealed class OrderRepository(DeliveryDbContext dbContext) : IOrderReposit
                 order.AssignedDriverId.HasValue &&
                 driverIds.Contains(order.AssignedDriverId.Value) &&
                 order.Status != OrderStatus.Delivered &&
+                order.Status != OrderStatus.DeliveryConfirmed &&
                 order.Status != OrderStatus.Cancelled)
             .OrderBy(order => order.CreatedAtUtc)
             .ToListAsync(cancellationToken);
@@ -67,6 +68,7 @@ public sealed class OrderRepository(DeliveryDbContext dbContext) : IOrderReposit
                     order.AssignedDriverId == driverId &&
                     (!excludedOrderId.HasValue || order.Id != excludedOrderId.Value) &&
                     order.Status != OrderStatus.Delivered &&
+                    order.Status != OrderStatus.DeliveryConfirmed &&
                     order.Status != OrderStatus.Cancelled,
                 cancellationToken);
 

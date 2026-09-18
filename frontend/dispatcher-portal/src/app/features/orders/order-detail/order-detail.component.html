@@ -73,7 +73,9 @@
             <li>
               <span class="timeline__marker" aria-hidden="true"></span>
               <div>
-                <strong>{{ entry.status === 'PickedUp' ? 'Picked up' : entry.status }}</strong>
+                <strong>
+                  {{ entry.status === 'PickedUp' ? 'Picked up' : entry.status === 'DeliveryConfirmed' ? 'Confirmed received' : entry.status }}
+                </strong>
                 <span>{{ entry.changedAtUtc | date:'MMM d, y · h:mm a' }}</span>
                 @if (entry.note) { <p>{{ entry.note }}</p> }
               </div>

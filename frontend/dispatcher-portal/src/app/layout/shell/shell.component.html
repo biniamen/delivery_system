@@ -12,6 +12,7 @@
       @if (auth.user()?.role === 'Dispatcher') {
         <a routerLink="/orders" routerLinkActive="is-active">Order queue</a>
         <a routerLink="/drivers" routerLinkActive="is-active">Live drivers</a>
+        <a routerLink="/driver-accounts" routerLinkActive="is-active">Driver accounts</a>
       } @else {
         <a routerLink="/products" routerLinkActive="is-active">Products & stock</a>
       }

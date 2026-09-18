@@ -11,36 +11,44 @@ import '../../helpers/fake_http_transport.dart';
 import '../../helpers/order_fixture.dart';
 
 void main() {
-  test(
-    'driver transition sends the next state and parses updated order',
-    () async {
-      final transport = FakeHttpTransport(
-        TransportResponse(
-          statusCode: 200,
-          body: jsonEncode(
-            orderFixture(
-              status: 'Accepted',
-              assignedDriverId: '00000000-0000-0000-0000-000000000300',
+  const transitionCases = <DeliveryOrderStatus, String>{
+    DeliveryOrderStatus.accepted: 'Accepted',
+    DeliveryOrderStatus.pickedUp: 'PickedUp',
+    DeliveryOrderStatus.delivered: 'Delivered',
+  };
+
+  for (final transitionCase in transitionCases.entries) {
+    test(
+      'driver transition sends and parses ${transitionCase.value}',
+      () async {
+        final transport = FakeHttpTransport(
+          TransportResponse(
+            statusCode: 200,
+            body: jsonEncode(
+              orderFixture(
+                status: transitionCase.value,
+                assignedDriverId: '00000000-0000-0000-0000-000000000300',
+              ),
             ),
           ),
-        ),
-      );
-      final client = ApiClient(
-        transport,
-        config: AppConfig(apiOrigin: Uri.parse('http://127.0.0.1:5080')),
-      )..accessToken = 'driver-token';
+        );
+        final client = ApiClient(
+          transport,
+          config: AppConfig(apiOrigin: Uri.parse('http://127.0.0.1:5080')),
+        )..accessToken = 'driver-token';
 
-      final order = await ApiDriverOrderService(client).transitionOrder(
-        orderId: '00000000-0000-0000-0000-000000000100',
-        status: DeliveryOrderStatus.accepted,
-        note: 'Driver accepted',
-      );
+        final order = await ApiDriverOrderService(client).transitionOrder(
+          orderId: '00000000-0000-0000-0000-000000000100',
+          status: transitionCase.key,
+          note: 'Driver status update',
+        );
 
-      final body =
-          jsonDecode(transport.lastRequest!.body!) as Map<String, Object?>;
-      expect(transport.lastRequest?.method, 'POST');
-      expect(body['status'], 'Accepted');
-      expect(order.status, DeliveryOrderStatus.accepted);
-    },
-  );
+        final body =
+            jsonDecode(transport.lastRequest!.body!) as Map<String, Object?>;
+        expect(transport.lastRequest?.method, 'POST');
+        expect(body['status'], transitionCase.value);
+        expect(order.status, transitionCase.key);
+      },
+    );
+  }
 }

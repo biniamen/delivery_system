@@ -36,4 +36,20 @@ public sealed class User
         DateOfBirth = dateOfBirth;
         IsPhoneVerified = true;
     }
+
+    public void CompleteDriverProfile(string phoneNumber)
+    {
+        if (Role != UserRole.Driver)
+            throw new InvalidOperationException("Only driver accounts can have a driver profile.");
+
+        PhoneNumber = phoneNumber.Trim();
+    }
+
+    public void SetActive(bool isActive)
+    {
+        if (Role != UserRole.Driver)
+            throw new InvalidOperationException("Only driver accounts can be managed through driver operations.");
+
+        IsActive = isActive;
+    }
 }
